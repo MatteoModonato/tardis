@@ -142,7 +142,14 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
         final int testCountInitial = this.testCount;
         this.testCount += items.size();
         final Runnable job = (items.get(0).isSeed() ? 
-                              () -> generateTestsAndScheduleJBSESeed(testCountInitial, items.get(0)) :
+                              () -> {
+								try {
+									generateTestsAndScheduleJBSESeed(testCountInitial, items.get(0));
+								} catch (IOException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+							} :
                               () -> generateTestsAndScheduleJBSE(testCountInitial, items));
         return job;
     }
@@ -156,8 +163,9 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
      *        from {@code testCountInitial} henceforth.
      * @param item a {@link JBSEResult}. It must be
      *              {@code item.}{@link JBSEResult#isSeed() isSeed}{@code () == true && item.}{@link JBSEResult#hasTargetMethod() hasTargetMethod}{@code () == false}.
+     * @throws IOException 
      */
-    private void generateTestsAndScheduleJBSESeed(int testCountInitial, JBSEResult item) {
+    private void generateTestsAndScheduleJBSESeed(int testCountInitial, JBSEResult item) throws IOException {
         final boolean isTargetAMethod = (item.getTargetClassName() == null);
         
         if (isTargetAMethod) {
@@ -852,14 +860,20 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
 
         @Override
         public void run() {
-            detectTestsAndScheduleJBSE();
+            try {
+				detectTestsAndScheduleJBSE();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
         }
 
         /**
          * Waits for EvoSuite to emit test classes and schedules JBSE
          * for their further analysis.
+         * @throws IOException 
          */
-        private void detectTestsAndScheduleJBSE() {
+        private void detectTestsAndScheduleJBSE() throws IOException {
             final Pattern patternEmittedTest = Pattern.compile("^.*\\* EMITTED TEST CASE: .*EvoSuiteWrapper_(\\d+), \\w+\\z");
             final HashSet<Integer> generated = new HashSet<>();
             try (final BufferedReader r = Files.newBufferedReader(this.evosuiteLogFilePath)) {
@@ -899,8 +913,11 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
             //have not been generated and exits
             int testCount = this.testCountInitial;
             for (JBSEResult item : this.items) {
+            	final List<Clause> pathConditionClauses = (item.getFinalState() == null ? null : item.getFinalState().getPathCondition());
+            	final String testCaseClassName = (item.hasTargetMethod() ? item.getTargetMethodClassName() : item.getTargetClassName()) + "_" + testCount + "_Test";
                 if (!generated.contains(testCount)) {
                     System.out.println("[EVOSUITE] Failed to generate a test case for path condition: " + stringifyPathCondition(shorten(item.getFinalState().getPathCondition())) + ", log file: " + this.evosuiteLogFilePath.toString() + ", wrapper: EvoSuiteWrapper_" + testCount);
+                    TrainingSetManager.PCWriterCSVFailure(pathConditionClauses, testCaseClassName);
                 }
                 ++testCount;
             }
@@ -934,8 +951,9 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
      *        the generated test.
      * @param item a {@link JBSEResult}, the result of the symbolic execution
      *        from which the test was generated.
+     * @throws IOException 
      */
-    private void checkTestCompileAndScheduleJBSE(int testCount, JBSEResult item) {
+    private void checkTestCompileAndScheduleJBSE(int testCount, JBSEResult item) throws IOException {
         final List<Clause> pathConditionClauses = (item.getFinalState() == null ? null : item.getFinalState().getPathCondition());
         final String pathCondition = (pathConditionClauses == null ? "true" : stringifyPathCondition(shorten(pathConditionClauses)));
         
@@ -967,6 +985,7 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
             checkTestExists(testCaseClassName);
             final int depth = item.getDepth();
             System.out.println("[EVOSUITE] Generated test case " + testCaseClassName + ", depth: " + depth + ", path condition: " + pathCondition);
+            TrainingSetManager.PCWriterCSVSuccess(pathConditionClauses, testCaseClassName);
             final TestCase newTC = new TestCase(testCaseClassName, "()V", "test0", this.outPath);
             this.getOutputBuffer().add(new EvosuiteResult(item.getTargetMethodClassName(), item.getTargetMethodDescriptor(), item.getTargetMethodName(), newTC, depth + 1)); //TODO what if the item has not a target method, as it happens with seeds???
         } catch (NoSuchMethodException e) { 

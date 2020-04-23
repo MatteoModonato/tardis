@@ -29,11 +29,13 @@ import tardis.framework.TerminationManager;
 import tardis.implementation.CoverageSet;
 import tardis.implementation.EvosuiteResult;
 import tardis.implementation.JBSEResult;
+import tardis.implementation.ListInputOutputBuffer;
 import tardis.implementation.NoJavaCompilerException;
 import tardis.implementation.PerformerEvosuite;
 import tardis.implementation.PerformerEvosuiteInitException;
 import tardis.implementation.PerformerJBSE;
 import tardis.implementation.QueueInputOutputBuffer;
+import tardis.implementation.StructureLaberPair;
 import tardis.implementation.TestCase;
 
 /**
@@ -55,6 +57,9 @@ public final class Main {
     public Main(Options o) {
         this.o = o;
     }
+    
+    public static List<StructureLaberPair> trainingSet = new ArrayList<StructureLaberPair>();
+	public static int trainingSetLen = 0;
 
     /**
      * Runs TARDIS.
@@ -76,7 +81,8 @@ public final class Main {
             final CoverageSet coverageSet = new CoverageSet();
 
             //creates the communication buffers between the performers
-            final QueueInputOutputBuffer<JBSEResult> pathConditionBuffer = new QueueInputOutputBuffer<>();
+            final ListInputOutputBuffer<JBSEResult> pathConditionBuffer = new ListInputOutputBuffer<>();
+            //final QueueInputOutputBuffer<JBSEResult> pathConditionBuffer = new QueueInputOutputBuffer<>();
             final QueueInputOutputBuffer<EvosuiteResult> testCaseBuffer = new QueueInputOutputBuffer<>();
 
             //creates and wires together the components of the architecture

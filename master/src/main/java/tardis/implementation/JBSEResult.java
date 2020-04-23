@@ -1,5 +1,6 @@
 package tardis.implementation;
 
+import java.util.BitSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,6 +85,10 @@ public class JBSEResult {
      * {@code -1} if this {@link JBSEResult} is a seed item.
      */
     private final int depth;
+    BitSet[] bloomFilterStructure = new BitSet[16];
+	int label;
+	int voting;
+	Double average;
 
     /**
      * Constructor for seed item (target method).
@@ -150,7 +155,7 @@ public class JBSEResult {
      * @param depth A positive {@code int}, the depth of the path 
      *        to the frontier.
      */
-    public JBSEResult(String targetMethodClassName, String targetMethodDescriptor, String targetMethodName, State initialState, State preState, State finalState, boolean atJump, String targetBranch, Map<Long, String> stringLiterals, int depth) {
+    public JBSEResult(String targetMethodClassName, String targetMethodDescriptor, String targetMethodName, State initialState, State preState, State finalState, boolean atJump, String targetBranch, Map<Long, String> stringLiterals, int depth, BitSet[] bloomFilterStructure, int label, int voting, Double average) {
         this.targetClassName = null;
         this.targetMethodClassName = targetMethodClassName;
         this.targetMethodDescriptor = targetMethodDescriptor;
@@ -162,6 +167,10 @@ public class JBSEResult {
         this.targetBranch = (atJump ? targetBranch : null);
         this.stringLiterals = new HashMap<>(stringLiterals); //safety copy
         this.depth = depth;
+        this.bloomFilterStructure = bloomFilterStructure;
+		this.label = label;
+		this.voting = voting;
+		this.average = average;
     }
     
     /**
@@ -301,5 +310,33 @@ public class JBSEResult {
      */
     public int getDepth() {
         return this.depth;
-    }	
+    }
+    
+    public BitSet[] getbloomFilterStructure() {
+		return this.bloomFilterStructure;
+	}
+	
+	public int getLabel() {
+		return this.label;
+	}
+	
+	public void setLabel(int newLabel) {
+		this.label = newLabel;
+	}
+	
+	public int getVoting() {
+		return this.voting;
+	}
+	
+	public void setVoting(int newVoting) {
+		this.voting = newVoting;
+	}
+	
+	public Double getAverage() {
+		return this.average;
+	}
+	
+	public void setAverage(Double newAverage) {
+		this.average = newAverage;
+	}
 }

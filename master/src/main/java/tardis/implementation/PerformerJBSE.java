@@ -3,6 +3,7 @@ package tardis.implementation;
 import static tardis.implementation.Util.shorten;
 import static tardis.implementation.Util.stringifyPathCondition;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -53,7 +54,10 @@ public final class PerformerJBSE extends Performer<EvosuiteResult, JBSEResult> {
             ThreadStackEmptyException | ContradictionException | EngineStuckException |
             FailureException e ) {
                 System.out.println("[JBSE    ] Unexpected exception raised while exploring test case " + item.getTestCase().getClassName() + ": " + e.getMessage());
-            }
+            } catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
         };
         return job;
     }
@@ -91,13 +95,14 @@ public final class PerformerJBSE extends Performer<EvosuiteResult, JBSEResult> {
      * @throws ContradictionException
      * @throws EngineStuckException
      * @throws FailureException
+     * @throws IOException 
      */
     private void explore(EvosuiteResult item, int startDepth) 
     throws DecisionException, CannotBuildEngineException, InitializationException, 
     InvalidClassFileFactoryClassException, NonexistingObservedVariablesException, 
     ClasspathException, CannotBacktrackException, CannotManageStateException, 
     ThreadStackEmptyException, ContradictionException, EngineStuckException, 
-    FailureException {
+    FailureException, IOException {
         if (this.maxDepth <= 0) {
             return;
         }
@@ -139,7 +144,7 @@ public final class PerformerJBSE extends Performer<EvosuiteResult, JBSEResult> {
                     if (this.treePath.containsPath(currentPC)) {
                         continue;
                     }
-                    final JBSEResult output = new JBSEResult(item.getTargetMethodClassName(), item.getTargetMethodDescriptor(), item.getTargetMethodName(), initialState, preState, newState, atJump, (atJump ? targetBranches.get(i) : null), stringLiterals, currentDepth);
+                    final JBSEResult output = new JBSEResult(item.getTargetMethodClassName(), item.getTargetMethodDescriptor(), item.getTargetMethodName(), initialState, preState, newState, atJump, (atJump ? targetBranches.get(i) : null), stringLiterals, currentDepth, ConvertPCToBloomFilter.PCToBloomFilter(currentPC, item.getTargetMethodClassName()), 2, 4, 2.0);
                     this.getOutputBuffer().add(output);
                     this.treePath.insertPath(currentPC);
                     System.out.println("[JBSE    ] From test case " + tc.getClassName() + " generated path condition " + stringifyPathCondition(shorten(currentPC)) + (atJump ? (" aimed at branch " + targetBranches.get(i)) : ""));
