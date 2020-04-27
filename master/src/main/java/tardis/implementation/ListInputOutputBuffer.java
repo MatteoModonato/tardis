@@ -17,15 +17,12 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
 
     @Override
     public boolean add(E item) {
-    	//supportQueue.add(1);
-    	//System.out.println("Lunghezza this.list ADD: "+ this.list.size());
         return this.list.add((JBSEResult) item);
     }
 
     @Override
     public E poll(long timeoutDuration, TimeUnit timeoutTimeUnit) throws InterruptedException {
     	if(this.list.size()!=0) {
-    	//if (supportQueue.poll(timeoutDuration, timeoutTimeUnit) != null) {
     		int threshold = 5;
 			int minTrainsetLen = 2;
 			boolean flag = false;
