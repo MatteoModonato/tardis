@@ -47,7 +47,7 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
 					//gli elementi dentro la lista che hanno la label uguale a 2 cioè significa 
 					//che non sono ancora mai stati classificati con KNN.
 					if(Main.trainingSet.size()<Main.trainingSetLen+threshold) {
-						System.out.println("SONO NELL'IF CHE CALCOLA SOLO QUELLI ANCORA NON CALCOLATI");
+						//System.out.println("SONO NELL'IF CHE CALCOLA SOLO QUELLI ANCORA NON CALCOLATI");
 						if(this.list.get(i).getLabel() == 2) {
 							Object[] result = Knn.knn(Main.trainingSet, this.list.get(i).getbloomFilterStructure());
 							int label = (int) result[0];
@@ -58,9 +58,11 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
 							this.list.get(i).setVoting(voting);
 							this.list.get(i).setAverage(average);
 							
+							//System.out.println("-------------------");
 							//System.out.println("label: "+label);
 							//System.out.println("voting: "+voting);
 							//System.out.println("average: "+average);
+							//System.out.println("-------------------");
 						}
 						
 						if (this.list.get(i).getLabel() == 1) {
@@ -87,7 +89,7 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
 					//trainingSet è cresciuto di un valore significativo).
 					else {
 						flag = true;
-						System.out.println("SONO NELL'ELSE CHE RICALCOLA TUTTO");
+						//System.out.println("SONO NELL'ELSE CHE RICALCOLA TUTTO");
 						//System.out.println("Valore della flag nell'else: "+flag);
 						Object[] result = Knn.knn(Main.trainingSet, this.list.get(i).getbloomFilterStructure());
 						int label = (int) result[0];
@@ -98,9 +100,11 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
 						this.list.get(i).setVoting(voting);
 						this.list.get(i).setAverage(average);
 						
+						//System.out.println("-------------------");
 						//System.out.println("label: "+label);
 						//System.out.println("voting: "+voting);
 						//System.out.println("average: "+average);
+						//System.out.println("-------------------");
 						
 						if (label == 1) {
 							if (voting == 3) {
@@ -149,7 +153,7 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
     }
 
     @Override
-    public int size() {
-        return this.list.size();
+    public boolean isEmpty() {
+        return this.list.isEmpty();
     }
 }

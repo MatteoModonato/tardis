@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -58,7 +59,8 @@ public final class Main {
         this.o = o;
     }
     
-    public static List<StructureLaberPair> trainingSet = new ArrayList<StructureLaberPair>();
+    public static CopyOnWriteArrayList<StructureLaberPair> trainingSet = new CopyOnWriteArrayList<StructureLaberPair>();
+    //public static List<StructureLaberPair> trainingSet = new ArrayList<StructureLaberPair>();
 	public static int trainingSetLen = 0;
 
     /**
