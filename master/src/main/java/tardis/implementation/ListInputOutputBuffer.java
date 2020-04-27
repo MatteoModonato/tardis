@@ -13,7 +13,6 @@ import tardis.framework.OutputBuffer;
  */
 public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuffer<E> {
 	public final ArrayList<JBSEResult> list = new ArrayList<>();
-	//private final LinkedBlockingQueue<Integer> supportQueue = new LinkedBlockingQueue<>();
 
     @Override
     public boolean add(E item) {
