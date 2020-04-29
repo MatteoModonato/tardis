@@ -1,6 +1,7 @@
 package tardis.implementation;
 
 import java.util.ArrayList;
+import java.util.Random;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -33,10 +34,10 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
 			//Se non ho almeno tre elementi nel training set allora non posso 
 			//fare knn quindi utilizzo FIFO restituendo il primo elemento della lista.
 			if (Main.trainingSet.size()>minTrainsetLen) {
-				ArrayList<Double> label1Voting3 = new ArrayList<Double>();
-				ArrayList<Double> label1Voting2 = new ArrayList<Double>();
-				ArrayList<Double> label0Voting2 = new ArrayList<Double>();
-				ArrayList<Double> label0Voting3 = new ArrayList<Double>();
+				ArrayList<JBSEResult> label1Voting3 = new ArrayList<JBSEResult>();
+				ArrayList<JBSEResult> label1Voting2 = new ArrayList<JBSEResult>();
+				ArrayList<JBSEResult> label0Voting2 = new ArrayList<JBSEResult>();
+				ArrayList<JBSEResult> label0Voting3 = new ArrayList<JBSEResult>();
 				
 				for (int i=0; i<this.list.size(); i++) {
 					//Se il trainingSet non è aumentato di n elementi allora classifico solo 
@@ -63,18 +64,18 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
 						
 						if (this.list.get(i).getLabel() == 1) {
 							if (this.list.get(i).getVoting() == 3) {
-								label1Voting3.add(this.list.get(i).getAverage());
+								label1Voting3.add(this.list.get(i));
 							}
 							else {
-								label1Voting2.add(this.list.get(i).getAverage());
+								label1Voting2.add(this.list.get(i));
 							}
 						}
 						else {
 							if (this.list.get(i).getVoting() == 2) {
-								label0Voting2.add(this.list.get(i).getAverage());
+								label0Voting2.add(this.list.get(i));
 							}
 							else {
-								label0Voting3.add(this.list.get(i).getAverage());
+								label0Voting3.add(this.list.get(i));
 							}	
 						}
 						
@@ -102,20 +103,20 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
 						//System.out.println("average: "+average);
 						//System.out.println("-------------------");
 						
-						if (label == 1) {
-							if (voting == 3) {
-								label1Voting3.add(average);
+						if (this.list.get(i).getLabel() == 1) {
+							if (this.list.get(i).getVoting() == 3) {
+								label1Voting3.add(this.list.get(i));
 							}
 							else {
-								label1Voting2.add(average);
+								label1Voting2.add(this.list.get(i));
 							}
 						}
 						else {
-							if (voting == 2) {
-								label0Voting2.add(average);
+							if (this.list.get(i).getVoting() == 2) {
+								label0Voting2.add(this.list.get(i));
 							}
 							else {
-								label0Voting3.add(average);
+								label0Voting3.add(this.list.get(i));
 							}	
 						}
 						
@@ -126,16 +127,62 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
 					Main.trainingSetLen = Main.trainingSet.size();
 					//System.out.println("SONO NELL'IF DELLA FLAG");
 				}
-				double averageReturned = ExtractByCumulative.extractByCumulative(label1Voting3, label1Voting2, label0Voting2, label0Voting3);
-				for (int i=0; i<this.list.size(); i++) {
-					if (this.list.get(i).getAverage() == averageReturned) {
-						JBSEResult item = this.list.get(i);
-						this.list.remove(i);
-						System.out.println("RETURN -- CUMULATIVE");
-						return (E) item;
+				
+				ArrayList<ArrayList<JBSEResult>> setOfPolls = new ArrayList<ArrayList<JBSEResult>>();
+				setOfPolls.add(label1Voting3);
+				setOfPolls.add(label1Voting2);
+				setOfPolls.add(label0Voting2);
+				setOfPolls.add(label0Voting3);
+				
+				//Genero numero randomico tra 0 e 100 per scegliere da quale insieme estarre il JBSEResult
+				//Probalilità e ordine di successione degli insiemi:
+				//50% --> label1Voting3
+				//30% --> label1Voting2
+				//15% --> label0Voting2
+				//5%  --> label0Voting3
+				
+				int range1 = 100;				
+				//increase range2 to increase the % of choosing label1Voting3
+				int range2 = 50;
+				int range3 = 20;
+				int range4 = 5;
+				
+				Random rand = new Random();
+				int upperbound=100;
+				int intRandom = rand.nextInt(upperbound);
+				
+				int index;
+				if(intRandom<=range1 && intRandom>100-range2) {
+					index=0;
+				}
+				else if(intRandom<=range2 && intRandom>range3) {
+					index=1;
+				}
+				else if(intRandom<=range3 && intRandom>range4) {
+					index=2;
+				}
+				else {
+					index=3;
+				}
+
+				//Parto dall'insieme scelto tramite intRandom;
+				//se l'insieme scelto è vuoto passo all'insieme immediatamente successivo
+				for (int i = index; i<setOfPolls.size(); i++) {
+					if(!setOfPolls.get(i).isEmpty()) {
+						//JBSEResult item = setOfPolls.get(i).get(0);		
+						JBSEResult item = ExtractByCumulative.extractByCumulative(setOfPolls.get(i));
+						
+						//Scorro this.list per identificare in base all'id il JBSEResult che ritorno 
+						//ed eliminarlo dalla lista
+						for (int j=0; j<this.list.size(); j++) {
+							if(this.list.get(j).getId() == item.getId()) {
+								this.list.remove(j);
+								System.out.println("RETURN -- POLLS. Label: "+item.getLabel()+" Voting: "+item.getVoting()+" Average: "+item.getAverage());
+								return (E) item;
+							}
+						}
 					}
 				}
-				
 			}
 			JBSEResult item = this.list.get(0);
 			this.list.remove(0);

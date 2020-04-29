@@ -89,6 +89,7 @@ public class JBSEResult {
 	int label;
 	int voting;
 	Double average;
+	long incrementalId;
 
     /**
      * Constructor for seed item (target method).
@@ -155,7 +156,7 @@ public class JBSEResult {
      * @param depth A positive {@code int}, the depth of the path 
      *        to the frontier.
      */
-    public JBSEResult(String targetMethodClassName, String targetMethodDescriptor, String targetMethodName, State initialState, State preState, State finalState, boolean atJump, String targetBranch, Map<Long, String> stringLiterals, int depth, BitSet[] bloomFilterStructure, int label, int voting, Double average) {
+    public JBSEResult(String targetMethodClassName, String targetMethodDescriptor, String targetMethodName, State initialState, State preState, State finalState, boolean atJump, String targetBranch, Map<Long, String> stringLiterals, int depth, BitSet[] bloomFilterStructure, int label, int voting, Double average, long incrementalId) {
         this.targetClassName = null;
         this.targetMethodClassName = targetMethodClassName;
         this.targetMethodDescriptor = targetMethodDescriptor;
@@ -171,6 +172,7 @@ public class JBSEResult {
 		this.label = label;
 		this.voting = voting;
 		this.average = average;
+		this.incrementalId = incrementalId;
     }
     
     /**
@@ -339,4 +341,8 @@ public class JBSEResult {
 	public void setAverage(Double newAverage) {
 		this.average = newAverage;
 	}
+	
+	public long getId() {
+        return this.incrementalId;
+   }
 }

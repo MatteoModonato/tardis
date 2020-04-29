@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import jbse.algo.exc.CannotManageStateException;
 import jbse.bc.exc.InvalidClassFileFactoryClassException;
@@ -34,6 +35,7 @@ public final class PerformerJBSE extends Performer<EvosuiteResult, JBSEResult> {
     private final CoverageSet coverageSet;
     private final TreePath treePath = new TreePath();
     private final HashMap<String, State> initialStateCache = new HashMap<>();
+    static final AtomicLong NEXT_ID = new AtomicLong(0);
 
     public PerformerJBSE(Options o, InputBuffer<EvosuiteResult> in, OutputBuffer<JBSEResult> out, CoverageSet coverageSet) {
         super(in, out, o.getNumOfThreads(), 1, o.getThrottleFactorJBSE(), o.getGlobalTimeBudgetDuration(), o.getGlobalTimeBudgetUnit());
@@ -144,7 +146,8 @@ public final class PerformerJBSE extends Performer<EvosuiteResult, JBSEResult> {
                     if (this.treePath.containsPath(currentPC)) {
                         continue;
                     }
-                    final JBSEResult output = new JBSEResult(item.getTargetMethodClassName(), item.getTargetMethodDescriptor(), item.getTargetMethodName(), initialState, preState, newState, atJump, (atJump ? targetBranches.get(i) : null), stringLiterals, currentDepth, ConvertPCToBloomFilter.PCToBloomFilter(currentPC, item.getTargetMethodClassName()), 2, 4, 2.0);
+                    final JBSEResult output = new JBSEResult(item.getTargetMethodClassName(), item.getTargetMethodDescriptor(), item.getTargetMethodName(), initialState, preState, newState, atJump, (atJump ? targetBranches.get(i) : null), stringLiterals, currentDepth, ConvertPCToBloomFilter.PCToBloomFilter(currentPC, item.getTargetMethodClassName()), 2, 4, 2.0, NEXT_ID.getAndIncrement());
+                    System.out.println("id incrementale: "+output.getId());
                     this.getOutputBuffer().add(output);
                     this.treePath.insertPath(currentPC);
                     System.out.println("[JBSE    ] From test case " + tc.getClassName() + " generated path condition " + stringifyPathCondition(shorten(currentPC)) + (atJump ? (" aimed at branch " + targetBranches.get(i)) : ""));
