@@ -2,7 +2,6 @@ package tardis.implementation;
 
 import java.util.ArrayList;
 import java.util.Random;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import tardis.Main;
@@ -10,8 +9,15 @@ import tardis.framework.InputBuffer;
 import tardis.framework.OutputBuffer;
 
 /**
- * @param <E> the type of the items stored in the buffer.
+ * Class that implements the JBSEResult choice system through classifier.
+ * The classification of the path conditions into feasible and infeasible 
+ * is carried out each time a poll is performed on the pathConditionBuffer.
+ * The class is more likely to extract path conditions that are classified as 
+ * feasible (label 1) and less likely to extract those that are classified as 
+ * infeasible (label 0) (50% label1Voting3, 30% label1Voting2, 
+ * 15% label0Voting2, 5% label0Voting3).
  */
+
 public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuffer<E> {
 	public final ArrayList<JBSEResult> list = new ArrayList<>();
 
@@ -177,7 +183,7 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
 						for (int j=0; j<this.list.size(); j++) {
 							if(this.list.get(j).getId() == item.getId()) {
 								this.list.remove(j);
-								System.out.println("RETURN -- POLLS. Label: "+item.getLabel()+" Voting: "+item.getVoting()+" Average: "+item.getAverage());
+								System.out.println("RETURN -- POLLS. Label: "+item.getLabel()+" Voting: "+item.getVoting()+" Average: "+item.getAverage()+" |label1voting3: "+label1Voting3.size()+" |label1voting2: "+label1Voting2.size()+" |label0voting2: "+label0Voting2.size()+" |label0voting3: "+label0Voting3.size());
 								return (E) item;
 							}
 						}

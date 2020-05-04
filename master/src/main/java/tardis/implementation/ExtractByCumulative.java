@@ -1,15 +1,17 @@
 package tardis.implementation;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Random;
+
+/**
+ * Class that takes as input the set chosen by ListInputOutputBuffer.java. 
+ * It chooses the JBSEResult to be extracted by cumulative of the average 
+ * of the k distances and subsequent random extraction.
+ */
 
 public class ExtractByCumulative {
 	
 	public static JBSEResult extractByCumulative (ArrayList<JBSEResult> labelVoting) {
-		
-		//ArrayList<JBSEResult> listOriginal = new ArrayList<JBSEResult>();
-		//listOriginal.addAll(labelVoting);
 		
 		ArrayList<Double> listCumulative = new ArrayList<Double>();
 		

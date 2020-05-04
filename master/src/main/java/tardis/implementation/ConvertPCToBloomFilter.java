@@ -2,10 +2,8 @@ package tardis.implementation;
 
 import static tardis.implementation.Util.shorten;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
-
 import jbse.mem.Clause;
 
 /**

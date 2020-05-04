@@ -10,7 +10,6 @@ import static tardis.implementation.Util.shorten;
 import java.io.FileWriter;
 import java.io.IOException;
 import tardis.Main;
-import tardis.framework.Performer;
 
 /**
  * Class that takes as input the path conditions processed by EvoSuite.

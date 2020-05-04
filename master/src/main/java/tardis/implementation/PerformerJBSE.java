@@ -120,6 +120,9 @@ public final class PerformerJBSE extends Performer<EvosuiteResult, JBSEResult> {
             //prints some feedback
             final TestCase tc = item.getTestCase();
             System.out.println("[JBSE    ] Run test case " + tc.getClassName() + ", path condition " + stringifyPathCondition(shorten(tcFinalPC)));
+            if(tc.getClassName().contains("_0_Test")) {
+            	TrainingSetManager.PCWriterCSVSuccess(tcFinalPC, tc.getClassName());
+            }
             final int coverage = this.coverageSet.size();
             System.out.println("[JBSE    ] Current coverage: " + coverage + " branch" + (coverage == 1 ? "" : "es"));
             final int tcFinalDepth = tcFinalState.getDepth();
@@ -147,7 +150,6 @@ public final class PerformerJBSE extends Performer<EvosuiteResult, JBSEResult> {
                         continue;
                     }
                     final JBSEResult output = new JBSEResult(item.getTargetMethodClassName(), item.getTargetMethodDescriptor(), item.getTargetMethodName(), initialState, preState, newState, atJump, (atJump ? targetBranches.get(i) : null), stringLiterals, currentDepth, ConvertPCToBloomFilter.PCToBloomFilter(currentPC, item.getTargetMethodClassName()), 2, 4, 2.0, NEXT_ID.getAndIncrement());
-                    System.out.println("id incrementale: "+output.getId());
                     this.getOutputBuffer().add(output);
                     this.treePath.insertPath(currentPC);
                     System.out.println("[JBSE    ] From test case " + tc.getClassName() + " generated path condition " + stringifyPathCondition(shorten(currentPC)) + (atJump ? (" aimed at branch " + targetBranches.get(i)) : ""));
