@@ -30,26 +30,31 @@ public class ConvertPCToBloomFilter {
 
 			//divido le varie clausole delle patyh condition in un array
 			String[] generalArray = PathToString.split(" && ");
+			String[] specificArray = PathToString.split(" && ");
 			//System.out.println("General path condition(Num of clauses: " +generalArray.length+ "):  ");
 			for (int i=0; i < generalArray.length; i++){
 				//System.out.println("Prima della generalizzazione: "+generalArray[i]);
 				//se contiene lo / significa che devo gestire anche il package eliminandolo della clausole, altrimenti no
-				if (className.contains("/"))
+				if (className.contains("/")) {
 					generalArray[i]=generalArray[i].replaceAll("[0-9]", "").replaceAll(nameClass, "").replaceAll("/", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
-				else
+					specificArray[i]=specificArray[i].replaceAll(nameClass, "").replaceAll("/", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
+				}
+				else {
 					generalArray[i]=generalArray[i].replaceAll("[0-9]", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
+					specificArray[i]=specificArray[i].replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
+				}
 				//System.out.println("Dopo la generalizzazione: "+generalArray[i]);
 
 			}
 
 			//chiamata al metodo Slicing
-			//Object[] outputSliced = SlicingManager.Slicing(clauseArray, generalArray);
+			//Object[] outputSliced = SlicingManager.Slicing(PathToStringArray, clauseArray, generalArray);
 			//Object[] clauseArraySliced = (Object[]) outputSliced[0];
 			//String[] generalArraySliced = (String[]) outputSliced[1];
 
 
 			//BitSet[] bloomFilterStructure = bloomFilter(clauseArraySliced, generalArraySliced);
-			BitSet[] bloomFilterStructure = bloomFilter(clauseArray, generalArray);
+			BitSet[] bloomFilterStructure = bloomFilter(specificArray, generalArray);
 
 			return bloomFilterStructure;
 		}
@@ -60,7 +65,7 @@ public class ConvertPCToBloomFilter {
 	}
 	
 	
-	public static BitSet[] bloomFilter(Object[] clauseArray, String[] generalArray) {
+	public static BitSet[] bloomFilter(String[] specificArray, String[] generalArray) {
 
 		//creo array di bitSet bloom filter e array con dentro numeri primi per generare varie funzioni di hash
 		BitSet[] bloomFilterStructure = new BitSet[N_ROWS];
@@ -70,8 +75,8 @@ public class ConvertPCToBloomFilter {
 		int[] primeNumber = new int[] {7, 11, 13};
 
 		//scorro l'array che contiere le differenti condizioni della path condition  
-		for (int i = 0; i < clauseArray.length; i++) {
-			String singleClauseArray = clauseArray[i].toString();
+		for (int i = 0; i < specificArray.length; i++) {
+			String singleClauseArray = specificArray[i];
 			String singleGeneralArray = generalArray[i];
 			//scorro i vari numeri primi per applicare differenti funzioni di hash alla condizione generale e specifica
 			for (int j = 0; j < primeNumber.length; j++) {

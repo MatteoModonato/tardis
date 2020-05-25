@@ -54,14 +54,19 @@ public class TrainingSetManager {
 
 			//divido le varie clausole delle patyh condition in un array
 			String[] generalArray = PathToString.split(" && ");
+			String[] specificArray = PathToString.split(" && ");
 			//System.out.println("General path condition(Num of clauses: " +generalArray.length+ "):  ");
 			for (int i=0; i < generalArray.length; i++){
 				//System.out.println("Prima della generalizzazione: "+generalArray[i]);
 				//se contiene lo / significa che devo gestire anche il package eliminandolo della clausole, altrimenti no
-				if (className.contains("/"))
+				if (className.contains("/")) {
 					generalArray[i]=generalArray[i].replaceAll("[0-9]", "").replaceAll(nameClass, "").replaceAll("/", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
-				else
+					specificArray[i]=specificArray[i].replaceAll(nameClass, "").replaceAll("/", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
+				}
+				else {
 					generalArray[i]=generalArray[i].replaceAll("[0-9]", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
+					specificArray[i]=specificArray[i].replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
+				}
 				//System.out.println("Dopo la generalizzazione: "+generalArray[i]);
 
 			}
@@ -73,7 +78,7 @@ public class TrainingSetManager {
 
 
 			//BitSet[] bloomFilterStructure = bloomFilter(clauseArraySliced, generalArraySliced);
-			BitSet[] bloomFilterStructure = bloomFilter(clauseArray, generalArray);
+			BitSet[] bloomFilterStructure = bloomFilter(specificArray, generalArray);
 
 			Main.trainingSet.add(new StructureLaberPair(bloomFilterStructure, 1));
 			//System.out.println("TrainingSet size: "+Main.trainingSet.size());
@@ -85,7 +90,7 @@ public class TrainingSetManager {
 					CSVWriter.DEFAULT_ESCAPE_CHARACTER,
 					CSVWriter.DEFAULT_LINE_END);
 			//record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(clauseArray), Arrays.toString(generalArraySliced), Arrays.toString(clauseArraySliced), Arrays.toString(printBits(bloomFilterStructure)), "1"};
-			record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(clauseArray), Arrays.toString(printBits(bloomFilterStructure)), "1"};
+			record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(specificArray), Arrays.toString(clauseArray), Arrays.toString(printBits(bloomFilterStructure)), "1"};
 			//record = new String[] {PathToString.replace(";", ""), Arrays.toString(generalArray).replace(";", ""), Arrays.toString(clauseArray).replace(";", ""), Arrays.toString(printBits(bloomFilterStructure)), "1"};
 			//record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(clauseArray), Arrays.toString(clauseArraySliced), Arrays.toString(printBits(bloomFilterStructure)).replace("[", "").replace("]", "").replace(",", ";"), "1"};
 			writer.writeNext(record);
@@ -111,14 +116,19 @@ public class TrainingSetManager {
 
 			//divido le varie clausole delle patyh condition in un array
 			String[] generalArray = PathToString.split(" && ");
+			String[] specificArray = PathToString.split(" && ");
 			//System.out.println("General path condition(Num of clauses: " +generalArray.length+ "):  ");
 			for (int i=0; i < generalArray.length; i++){
 				//System.out.println("Prima della generalizzazione: "+generalArray[i]);
 				//se contiene lo / significa che devo gestire anche il package eliminandolo della clausole, altrimenti no
-				if (className.contains("/"))
+				if (className.contains("/")) {
 					generalArray[i]=generalArray[i].replaceAll("[0-9]", "").replaceAll(nameClass, "").replaceAll("/", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
-				else
+					specificArray[i]=specificArray[i].replaceAll(nameClass, "").replaceAll("/", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
+				}
+				else {
 					generalArray[i]=generalArray[i].replaceAll("[0-9]", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
+					specificArray[i]=specificArray[i].replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
+				}
 				//System.out.println("Dopo la generalizzazione: "+generalArray[i]);
 
 			}
@@ -129,7 +139,7 @@ public class TrainingSetManager {
 			//String[] generalArraySliced = (String[]) outputSliced[1];
 
 			//BitSet[] bloomFilterStructure = bloomFilter(clauseArraySliced, generalArraySliced);
-			BitSet[] bloomFilterStructure = bloomFilter(clauseArray, generalArray);
+			BitSet[] bloomFilterStructure = bloomFilter(specificArray, generalArray);
 
 			Main.trainingSet.add(new StructureLaberPair(bloomFilterStructure, 0));
 			//System.out.println("TrainingSet size: "+Main.trainingSet.size());
@@ -141,7 +151,7 @@ public class TrainingSetManager {
 					CSVWriter.DEFAULT_ESCAPE_CHARACTER,
 					CSVWriter.DEFAULT_LINE_END);
 			//record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(clauseArray), Arrays.toString(generalArraySliced), Arrays.toString(clauseArraySliced), Arrays.toString(printBits(bloomFilterStructure)), "0"};
-			record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(clauseArray), Arrays.toString(printBits(bloomFilterStructure)), "0"};
+			record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(specificArray), Arrays.toString(clauseArray), Arrays.toString(printBits(bloomFilterStructure)), "0"};
 			//record = new String[] {PathToString.replace(";", ""), Arrays.toString(generalArray).replace(";", ""), Arrays.toString(clauseArray).replace(";", ""), Arrays.toString(printBits(bloomFilterStructure)), "0"};
 			//record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(clauseArray), Arrays.toString(clauseArraySliced), Arrays.toString(printBits(bloomFilterStructure)).replace("[", "").replace("]", "").replace(",", ";"), "0"};
 			writer.writeNext(record);
@@ -154,7 +164,7 @@ public class TrainingSetManager {
 	
 	
 	
-	public static BitSet[] bloomFilter(Object[] clauseArray, String[] generalArray) {
+	public static BitSet[] bloomFilter(String[] specificArray, String[] generalArray) {
 
 		//creo array di bitSet bloom filter e array con dentro numeri primi per generare varie funzioni di hash
 		BitSet[] bloomFilterStructure = new BitSet[N_ROWS];
@@ -164,8 +174,8 @@ public class TrainingSetManager {
 		int[] primeNumber = new int[] {7, 11, 13};
 
 		//scorro l'array che contiere le differenti condizioni della path condition  
-		for (int i = 0; i < clauseArray.length; i++) {
-			String singleClauseArray = clauseArray[i].toString();
+		for (int i = 0; i < specificArray.length; i++) {
+			String singleClauseArray = specificArray[i];
 			String singleGeneralArray = generalArray[i];
 			//scorro i vari numeri primi per applicare differenti funzioni di hash alla condizione generale e specifica
 			for (int j = 0; j < primeNumber.length; j++) {
