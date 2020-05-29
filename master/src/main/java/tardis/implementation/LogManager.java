@@ -6,6 +6,14 @@ import java.util.ArrayList;
 
 import tardis.Main;
 
+/**
+ * Class that manages the generation of log files.
+ * If generateLogFiles is set to true, a log file will be generated for 
+ * each poll operation, containing information relating to the training
+ * set, the pathConditionBufferer and the extracted path condition.
+ * If generateLogFiles is set to false log system is disabled.
+ */
+
 public class LogManager {
 	
 	public final static boolean generateLogFiles = true;

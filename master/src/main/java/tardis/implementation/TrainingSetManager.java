@@ -38,16 +38,29 @@ public class TrainingSetManager {
 		return arr;
 	}
 	
+		
+	//metodo per salvare informazioni del training set in data.csv
+	public static void PrintToCSV(String PathToString, String[] generalArray, String[] generalArraySliced, String[] specificArray, String[] specificArraySliced, Object[] clauseArray, BitSet[] bloomFilterStructure, String label) throws IOException {
+		String[] record;
+		CSVWriter writer = new CSVWriter(new FileWriter("data.csv", true),
+				';', 
+				CSVWriter.NO_QUOTE_CHARACTER,
+				CSVWriter.DEFAULT_ESCAPE_CHARACTER,
+				CSVWriter.DEFAULT_LINE_END);
+		record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(generalArraySliced), Arrays.toString(specificArray), Arrays.toString(specificArraySliced), Arrays.toString(clauseArray), Arrays.toString(printBits(bloomFilterStructure)), label};
+		//record = new String[] {PathToString.replace(";", ""), Arrays.toString(generalArray).replace(";", ""), Arrays.toString(clauseArray).replace(";", ""), Arrays.toString(printBits(bloomFilterStructure)), "1"};
+		//record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(clauseArray), Arrays.toString(clauseArraySliced), Arrays.toString(printBits(bloomFilterStructure)).replace("[", "").replace("]", "").replace(",", ";"), "1"};
+		writer.writeNext(record);
+		writer.close();
+	}
 	
 	
-  
 	public static void PCWriterCSVSuccess(Collection<Clause> PC, String className) throws IOException {
 		if(PC!=null) {
 			//className= manyInfeasiblePC/ManyInfeasiblePC
-			String nameClass = className.replaceAll("/.*", "");
+			//String nameClass = className.replaceAll("/.*", "");
 			//nameClass=manyInfeasiblePC
 
-			//lavorare con la collection short
 			Object[] clauseArray = shorten(PC).toArray();
 
 			String PathToString = Util.stringifyPathCondition(shorten(PC));
@@ -55,61 +68,38 @@ public class TrainingSetManager {
 			//divido le varie clausole delle patyh condition in un array
 			String[] generalArray = PathToString.split(" && ");
 			String[] specificArray = PathToString.split(" && ");
-			//System.out.println("General path condition(Num of clauses: " +generalArray.length+ "):  ");
+
 			for (int i=0; i < generalArray.length; i++){
 				//System.out.println("Prima della generalizzazione: "+generalArray[i]);
-				//se contiene lo / significa che devo gestire anche il package eliminandolo della clausole, altrimenti no
-				if (className.contains("/")) {
-					generalArray[i]=generalArray[i].replaceAll("[0-9]", "").replaceAll(nameClass, "").replaceAll("/", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
-					specificArray[i]=specificArray[i].replaceAll(nameClass, "").replaceAll("/", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
-				}
-				else {
-					generalArray[i]=generalArray[i].replaceAll("[0-9]", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
-					specificArray[i]=specificArray[i].replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
-				}
+				generalArray[i]=generalArray[i].replaceAll("[0-9]", "");
 				//System.out.println("Dopo la generalizzazione: "+generalArray[i]);
-
 			}
 
 			//chiamata al metodo Slicing
-			//Object[] outputSliced = SlicingManager.Slicing(clauseArray, generalArray);
-			//Object[] clauseArraySliced = (Object[]) outputSliced[0];
-			//String[] generalArraySliced = (String[]) outputSliced[1];
+			Object[] outputSliced = SlicingManager.Slicing(specificArray, clauseArray, generalArray);
+			String[] specificArraySliced = (String[]) outputSliced[0];
+			String[] generalArraySliced = (String[]) outputSliced[1];
 
 
-			//BitSet[] bloomFilterStructure = bloomFilter(clauseArraySliced, generalArraySliced);
-			BitSet[] bloomFilterStructure = bloomFilter(specificArray, generalArray);
+			BitSet[] bloomFilterStructure = bloomFilter(specificArraySliced, generalArraySliced);
+			//BitSet[] bloomFilterStructure = bloomFilter(specificArray, generalArray);
 
 			Main.trainingSet.add(new StructureLaberPair(bloomFilterStructure, 1));
-			//System.out.println("TrainingSet size: "+Main.trainingSet.size());
 
-			String[] record;
-			CSVWriter writer = new CSVWriter(new FileWriter("data.csv", true),
-					';', 
-					CSVWriter.NO_QUOTE_CHARACTER,
-					CSVWriter.DEFAULT_ESCAPE_CHARACTER,
-					CSVWriter.DEFAULT_LINE_END);
-			//record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(clauseArray), Arrays.toString(generalArraySliced), Arrays.toString(clauseArraySliced), Arrays.toString(printBits(bloomFilterStructure)), "1"};
-			record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(specificArray), Arrays.toString(clauseArray), Arrays.toString(printBits(bloomFilterStructure)), "1"};
-			//record = new String[] {PathToString.replace(";", ""), Arrays.toString(generalArray).replace(";", ""), Arrays.toString(clauseArray).replace(";", ""), Arrays.toString(printBits(bloomFilterStructure)), "1"};
-			//record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(clauseArray), Arrays.toString(clauseArraySliced), Arrays.toString(printBits(bloomFilterStructure)).replace("[", "").replace("]", "").replace(",", ";"), "1"};
-			writer.writeNext(record);
-			writer.close();
+			PrintToCSV(PathToString, generalArray, generalArraySliced, specificArray, specificArraySliced, clauseArray, bloomFilterStructure, "1");
+			
 			System.out.println("+++++[TrainingSetManager] For path condition: " + PathToString);
 		    System.out.println("+++++[TrainingSetManager] PCWriterCSVSuccess: +++++ Data add to Training Set and saved to csv +++++");
 		}
 	}
   
-	
-	
-	
-	public static void PCWriterCSVFailure(Collection<Clause> PC, String className) throws IOException {
+
+	public static void PCWriterCSVSuccessFirstTest(Collection<Clause> PC, String className) throws IOException {
 		if(PC!=null) {
 			//className= manyInfeasiblePC/ManyInfeasiblePC
-			String nameClass = className.replaceAll("/.*", "");
+			//String nameClass = className.replaceAll("/.*", "");
 			//nameClass=manyInfeasiblePC
 
-			//lavorare con la collection short
 			Object[] clauseArray = shorten(PC).toArray();
 
 			String PathToString = Util.stringifyPathCondition(shorten(PC));
@@ -117,51 +107,83 @@ public class TrainingSetManager {
 			//divido le varie clausole delle patyh condition in un array
 			String[] generalArray = PathToString.split(" && ");
 			String[] specificArray = PathToString.split(" && ");
-			//System.out.println("General path condition(Num of clauses: " +generalArray.length+ "):  ");
+
 			for (int i=0; i < generalArray.length; i++){
 				//System.out.println("Prima della generalizzazione: "+generalArray[i]);
-				//se contiene lo / significa che devo gestire anche il package eliminandolo della clausole, altrimenti no
-				if (className.contains("/")) {
-					generalArray[i]=generalArray[i].replaceAll("[0-9]", "").replaceAll(nameClass, "").replaceAll("/", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
-					specificArray[i]=specificArray[i].replaceAll(nameClass, "").replaceAll("/", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
-				}
-				else {
-					generalArray[i]=generalArray[i].replaceAll("[0-9]", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
-					specificArray[i]=specificArray[i].replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
-				}
+				generalArray[i]=generalArray[i].replaceAll("[0-9]", "");
 				//System.out.println("Dopo la generalizzazione: "+generalArray[i]);
-
 			}
-
+			
 			//chiamata al metodo Slicing
-			//Object[] outputSliced = SlicingManager.Slicing(clauseArray, generalArray);
-			//Object[] clauseArraySliced = (Object[]) outputSliced[0];
-			//String[] generalArraySliced = (String[]) outputSliced[1];
-
-			//BitSet[] bloomFilterStructure = bloomFilter(clauseArraySliced, generalArraySliced);
-			BitSet[] bloomFilterStructure = bloomFilter(specificArray, generalArray);
-
-			Main.trainingSet.add(new StructureLaberPair(bloomFilterStructure, 0));
-			//System.out.println("TrainingSet size: "+Main.trainingSet.size());
-
-			String[] record;
-			CSVWriter writer = new CSVWriter(new FileWriter("data.csv", true),
-					';', 
-					CSVWriter.NO_QUOTE_CHARACTER,
-					CSVWriter.DEFAULT_ESCAPE_CHARACTER,
-					CSVWriter.DEFAULT_LINE_END);
-			//record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(clauseArray), Arrays.toString(generalArraySliced), Arrays.toString(clauseArraySliced), Arrays.toString(printBits(bloomFilterStructure)), "0"};
-			record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(specificArray), Arrays.toString(clauseArray), Arrays.toString(printBits(bloomFilterStructure)), "0"};
-			//record = new String[] {PathToString.replace(";", ""), Arrays.toString(generalArray).replace(";", ""), Arrays.toString(clauseArray).replace(";", ""), Arrays.toString(printBits(bloomFilterStructure)), "0"};
-			//record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(clauseArray), Arrays.toString(clauseArraySliced), Arrays.toString(printBits(bloomFilterStructure)).replace("[", "").replace("]", "").replace(",", ";"), "0"};
-			writer.writeNext(record);
-			writer.close();
-			System.out.println("+++++[TrainingSetManager] For path condition: " + PathToString);
-		    System.out.println("+++++[TrainingSetManager] PCWriterCSVFailure: +++++ Data add to Training Set and saved to csv +++++");
+			Object[] outputSliced = SlicingManager.Slicing(specificArray, clauseArray, generalArray);
+			String[] specificArraySliced = (String[]) outputSliced[0];
+			String[] generalArraySliced = (String[]) outputSliced[1];
+			
+			BitSet[] bloomFilterStructure = bloomFilter(specificArraySliced, generalArraySliced);
+			
+			Main.trainingSet.add(new StructureLaberPair(bloomFilterStructure, 1));
+			
+			PrintToCSV(PathToString, generalArray, generalArraySliced, specificArray, specificArraySliced, clauseArray, bloomFilterStructure, "1");
+			
+			for (int i=specificArray.length - 1; i > 0; i--) {
+				String[] specificArrayNoLast = new String[i];
+				Object[] clauseArrayNoLast = new Object[i];
+				String[] generalArrayNoLast = new String[i];
+				System.arraycopy(specificArray, 0, specificArrayNoLast, 0, i);
+				System.arraycopy(clauseArray, 0, clauseArrayNoLast, 0, i);
+				System.arraycopy(generalArray, 0, generalArrayNoLast, 0, i);
+				
+				//chiamata al metodo Slicing
+				Object[] outputSlicedNoLast = SlicingManager.Slicing(specificArrayNoLast, clauseArrayNoLast, generalArrayNoLast);
+				String[] specificArraySlicedNoLast = (String[]) outputSlicedNoLast[0];
+				String[] generalArraySlicedNoLast = (String[]) outputSlicedNoLast[1];
+				
+				BitSet[] bloomFilterStructureNoLast = bloomFilter(specificArraySlicedNoLast, generalArraySlicedNoLast);
+				
+				Main.trainingSet.add(new StructureLaberPair(bloomFilterStructureNoLast, 1));
+				
+				PrintToCSV("---", generalArrayNoLast, generalArraySlicedNoLast, specificArrayNoLast, specificArraySlicedNoLast, clauseArrayNoLast, bloomFilterStructureNoLast, "1");
+			}
 		}
 	}
 	
 	
+	public static void PCWriterCSVFailure(Collection<Clause> PC, String className) throws IOException {
+		if(PC!=null) {
+			//className= manyInfeasiblePC/ManyInfeasiblePC
+			//String nameClass = className.replaceAll("/.*", "");
+			//nameClass=manyInfeasiblePC
+
+			Object[] clauseArray = shorten(PC).toArray();
+
+			String PathToString = Util.stringifyPathCondition(shorten(PC));
+
+			//divido le varie clausole delle patyh condition in un array
+			String[] generalArray = PathToString.split(" && ");
+			String[] specificArray = PathToString.split(" && ");
+
+			for (int i=0; i < generalArray.length; i++){
+				//System.out.println("Prima della generalizzazione: "+generalArray[i]);
+				generalArray[i]=generalArray[i].replaceAll("[0-9]", "");
+				//System.out.println("Dopo la generalizzazione: "+generalArray[i]);
+			}
+
+			//chiamata al metodo Slicing
+			Object[] outputSliced = SlicingManager.Slicing(specificArray, clauseArray, generalArray);
+			String[] specificArraySliced = (String[]) outputSliced[0];
+			String[] generalArraySliced = (String[]) outputSliced[1];
+
+			//BitSet[] bloomFilterStructure = bloomFilter(clauseArraySliced, generalArraySliced);
+			BitSet[] bloomFilterStructure = bloomFilter(specificArraySliced, generalArraySliced);
+
+			Main.trainingSet.add(new StructureLaberPair(bloomFilterStructure, 0));
+
+			PrintToCSV(PathToString, generalArray, generalArraySliced, specificArray, specificArraySliced, clauseArray, bloomFilterStructure, "0");
+			
+			System.out.println("+++++[TrainingSetManager] For path condition: " + PathToString);
+		    System.out.println("+++++[TrainingSetManager] PCWriterCSVFailure: +++++ Data add to Training Set and saved to csv +++++");
+		}
+	}
 	
 	
 	public static BitSet[] bloomFilter(String[] specificArray, String[] generalArray) {

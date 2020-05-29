@@ -20,10 +20,9 @@ public class ConvertPCToBloomFilter {
 	public static BitSet[] PCToBloomFilter(Collection<Clause> PC, String className) throws IOException {
 		if(PC!=null) {
 			//className= manyInfeasiblePC/ManyInfeasiblePC
-			String nameClass = className.replaceAll("/.*", "");
+			//String nameClass = className.replaceAll("/.*", "");
 			//nameClass=manyInfeasiblePC
 
-			//lavorare con la collection short
 			Object[] clauseArray = shorten(PC).toArray();
 
 			String PathToString = Util.stringifyPathCondition(shorten(PC));
@@ -31,30 +30,21 @@ public class ConvertPCToBloomFilter {
 			//divido le varie clausole delle patyh condition in un array
 			String[] generalArray = PathToString.split(" && ");
 			String[] specificArray = PathToString.split(" && ");
-			//System.out.println("General path condition(Num of clauses: " +generalArray.length+ "):  ");
+
 			for (int i=0; i < generalArray.length; i++){
 				//System.out.println("Prima della generalizzazione: "+generalArray[i]);
-				//se contiene lo / significa che devo gestire anche il package eliminandolo della clausole, altrimenti no
-				if (className.contains("/")) {
-					generalArray[i]=generalArray[i].replaceAll("[0-9]", "").replaceAll(nameClass, "").replaceAll("/", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
-					specificArray[i]=specificArray[i].replaceAll(nameClass, "").replaceAll("/", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
-				}
-				else {
-					generalArray[i]=generalArray[i].replaceAll("[0-9]", "").replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
-					specificArray[i]=specificArray[i].replaceAll("\\{ROOT\\}:", "").replaceAll("this", "").replaceAll("\\.", "");
-				}
+				generalArray[i]=generalArray[i].replaceAll("[0-9]", "");
 				//System.out.println("Dopo la generalizzazione: "+generalArray[i]);
-
 			}
 
 			//chiamata al metodo Slicing
-			//Object[] outputSliced = SlicingManager.Slicing(PathToStringArray, clauseArray, generalArray);
-			//Object[] clauseArraySliced = (Object[]) outputSliced[0];
-			//String[] generalArraySliced = (String[]) outputSliced[1];
+			Object[] outputSliced = SlicingManager.Slicing(specificArray, clauseArray, generalArray);
+			String[] specificArraySliced = (String[]) outputSliced[0];
+			String[] generalArraySliced = (String[]) outputSliced[1];
 
 
 			//BitSet[] bloomFilterStructure = bloomFilter(clauseArraySliced, generalArraySliced);
-			BitSet[] bloomFilterStructure = bloomFilter(specificArray, generalArray);
+			BitSet[] bloomFilterStructure = bloomFilter(specificArraySliced, generalArraySliced);
 
 			return bloomFilterStructure;
 		}

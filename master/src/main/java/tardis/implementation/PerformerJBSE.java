@@ -121,7 +121,7 @@ public final class PerformerJBSE extends Performer<EvosuiteResult, JBSEResult> {
             final TestCase tc = item.getTestCase();
             System.out.println("[JBSE    ] Run test case " + tc.getClassName() + ", path condition " + stringifyPathCondition(shorten(tcFinalPC)));
             if(tc.getClassName().contains("_0_Test")) {
-            	TrainingSetManager.PCWriterCSVSuccess(tcFinalPC, tc.getClassName());
+            	TrainingSetManager.PCWriterCSVSuccessFirstTest(tcFinalPC, tc.getClassName());
             }
             final int coverage = this.coverageSet.size();
             System.out.println("[JBSE    ] Current coverage: " + coverage + " branch" + (coverage == 1 ? "" : "es"));

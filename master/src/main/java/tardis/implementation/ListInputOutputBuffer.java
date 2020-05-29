@@ -40,9 +40,9 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
     		System.out.println("Lunghezza Main.trainingSet: "+ Main.trainingSet.size());
     		System.out.println("Lunghezza Main.trainingSetLen: "+ Main.trainingSetLen);
 
-    		//Se non ho almeno tre elementi nel training set allora non posso 
+    		//Se non ho almeno tre elementi nel training set e due nella lista allora non posso 
     		//fare knn quindi utilizzo FIFO restituendo il primo elemento della lista.
-    		if (Main.trainingSet.size()>minTrainsetLen) {
+    		if (Main.trainingSet.size()>minTrainsetLen && this.list.size()>1) {
     			ArrayList<JBSEResult> label1Voting3 = new ArrayList<JBSEResult>();
     			ArrayList<JBSEResult> label1Voting2 = new ArrayList<JBSEResult>();
     			ArrayList<JBSEResult> label0Voting2 = new ArrayList<JBSEResult>();
