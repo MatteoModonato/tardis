@@ -36,8 +36,8 @@ public class ExtractByCumulative {
 		//genero un numero randomico compreso tra 0 e il massimo in listCumulativeInt
 		Random rand = new Random();
 		int upperbound=listCumulativeInt.get(listCumulativeInt.size()-1)-1;
-		//gestisco media uguale a zero
-		if (upperbound<1)
+		//gestisco caso in cui getAverage() è sempre uguale a 0
+		if (upperbound<1) 
 			return labelVoting.get(0);
 		
 		int intRandom = rand.nextInt(upperbound);
