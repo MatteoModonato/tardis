@@ -91,9 +91,9 @@ public class SlicingManager {
 		}
 		
 		//rimuovere le origin di tipo {ROOT}:
-//		for(HashSet h: originSets) {
-//			h.remove("{ROOT}:");
-//		}
+		for(HashSet<String> h: originSets) {
+			h.remove("{ROOT}:");
+		}
 		
 		
 		//aggiungo all'hashset le variabili dell'ultima condizione della path condition
