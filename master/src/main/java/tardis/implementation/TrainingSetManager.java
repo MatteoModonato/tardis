@@ -7,6 +7,8 @@ import com.opencsv.CSVWriter;
 import jbse.mem.Clause;
 
 import static tardis.implementation.Util.shorten;
+
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import tardis.Main;
@@ -39,10 +41,16 @@ public class TrainingSetManager {
 	}
 	
 		
-	//metodo per salvare informazioni del training set in data.csv
+	//metodo per salvare informazioni del training set in trainingSet.csv
 	public static void PrintToCSV(String PathToString, String[] generalArray, String[] generalArraySliced, String[] specificArray, String[] specificArraySliced, Object[] clauseArray, BitSet[] bloomFilterStructure, String label) throws IOException {
+		
+		File directory = new File(LogManager.PATH);
+	    if (!directory.exists()){
+	        directory.mkdir();
+	    }
+		
 		String[] record;
-		CSVWriter writer = new CSVWriter(new FileWriter("data.csv", true),
+		CSVWriter writer = new CSVWriter(new FileWriter(LogManager.PATH+"trainingSet.csv", true),
 				';', 
 				CSVWriter.NO_QUOTE_CHARACTER,
 				CSVWriter.DEFAULT_ESCAPE_CHARACTER,
@@ -86,7 +94,8 @@ public class TrainingSetManager {
 
 			Main.trainingSet.add(new StructureLaberPair(bloomFilterStructure, 1));
 
-			PrintToCSV(PathToString, generalArray, generalArraySliced, specificArray, specificArraySliced, clauseArray, bloomFilterStructure, "1");
+			if (LogManager.generateLogFiles)
+				PrintToCSV(PathToString, generalArray, generalArraySliced, specificArray, specificArraySliced, clauseArray, bloomFilterStructure, "1");
 			
 			System.out.println("+++++[TrainingSetManager] For path condition: " + PathToString);
 		    System.out.println("+++++[TrainingSetManager] PCWriterCSVSuccess: +++++ Data add to Training Set and saved to csv +++++");
@@ -123,7 +132,8 @@ public class TrainingSetManager {
 			
 			Main.trainingSet.add(new StructureLaberPair(bloomFilterStructure, 1));
 			
-			PrintToCSV(PathToString, generalArray, generalArraySliced, specificArray, specificArraySliced, clauseArray, bloomFilterStructure, "1");
+			if (LogManager.generateLogFiles)
+				PrintToCSV(PathToString, generalArray, generalArraySliced, specificArray, specificArraySliced, clauseArray, bloomFilterStructure, "1");
 			
 			for (int i=specificArray.length - 1; i > 0; i--) {
 				String[] specificArrayNoLast = new String[i];
@@ -142,7 +152,8 @@ public class TrainingSetManager {
 				
 				Main.trainingSet.add(new StructureLaberPair(bloomFilterStructureNoLast, 1));
 				
-				PrintToCSV("---", generalArrayNoLast, generalArraySlicedNoLast, specificArrayNoLast, specificArraySlicedNoLast, clauseArrayNoLast, bloomFilterStructureNoLast, "1");
+				if (LogManager.generateLogFiles)
+					PrintToCSV("---", generalArrayNoLast, generalArraySlicedNoLast, specificArrayNoLast, specificArraySlicedNoLast, clauseArrayNoLast, bloomFilterStructureNoLast, "1");
 			}
 		}
 	}
@@ -178,7 +189,8 @@ public class TrainingSetManager {
 
 			Main.trainingSet.add(new StructureLaberPair(bloomFilterStructure, 0));
 
-			PrintToCSV(PathToString, generalArray, generalArraySliced, specificArray, specificArraySliced, clauseArray, bloomFilterStructure, "0");
+			if (LogManager.generateLogFiles)
+				PrintToCSV(PathToString, generalArray, generalArraySliced, specificArray, specificArraySliced, clauseArray, bloomFilterStructure, "0");
 			
 			System.out.println("+++++[TrainingSetManager] For path condition: " + PathToString);
 		    System.out.println("+++++[TrainingSetManager] PCWriterCSVFailure: +++++ Data add to Training Set and saved to csv +++++");
