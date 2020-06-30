@@ -35,10 +35,12 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
     		int threshold = 5;
     		int minTrainsetLen = 2;
     		boolean flag = false;
-
-    		System.out.println("Lunghezza this.list: "+ this.list.size());
-    		System.out.println("Lunghezza Main.trainingSet: "+ Main.trainingSet.size());
-    		System.out.println("Lunghezza Main.trainingSetLen: "+ Main.trainingSetLen);
+    		
+    		System.out.println("---------------------------------");
+    		System.out.println("Length this.list: "+ this.list.size());
+    		System.out.println("Length TrainingSet: "+ Main.trainingSet.size());
+    		System.out.println("Length TrainingSet Threshold: "+ Main.trainingSetLen);
+    		System.out.println("---------------------------------");
 
     		//Se non ho almeno tre elementi nel training set e due nella lista allora non posso 
     		//fare knn quindi utilizzo FIFO restituendo il primo elemento della lista.
@@ -190,7 +192,7 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
     						bufferLog.add("SETS RANDOM NUMBER:"+intRandom);
     						bufferLog.add("RETURN -- POLLS. ID: "+item.incrementalId+" Label: "+item.getLabel()+" Voting: "+item.getVoting()+" Average: "+item.getAverage());
     	    				LogManager.logManager(bufferLog, IDPOLL.getAndIncrement());
-    	    				System.out.println("Write Log to file: log"+(IDPOLL.get()-1)+".txt");
+    	    				System.out.println("[ML MODEL] Write Log to file: log"+(IDPOLL.get()-1)+".txt");
     	    			}
 
     					//Scorro this.list per identificare in base all'id il JBSEResult che ritorno 
@@ -198,7 +200,7 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
     					for (int j=0; j<this.list.size(); j++) {
     						if(this.list.get(j).getId() == item.getId()) {
     							this.list.remove(j);
-    							System.out.println("RETURN -- POLL NUM "+(IDPOLL.get()-1)+". ID: "+item.incrementalId+" Label: "+item.getLabel()+" Voting: "+item.getVoting()+" Average: "+item.getAverage()+" |label1voting3: "+label1Voting3.size()+" |label1voting2: "+label1Voting2.size()+" |label0voting2: "+label0Voting2.size()+" |label0voting3: "+label0Voting3.size());
+    							System.out.println("[ML MODEL] RETURN -- POLL NUM "+(IDPOLL.get()-1)+". ID: "+item.incrementalId+" Label: "+item.getLabel()+" Voting: "+item.getVoting()+" Average: "+item.getAverage()+" |label1voting3: "+label1Voting3.size()+" |label1voting2: "+label1Voting2.size()+" |label0voting2: "+label0Voting2.size()+" |label0voting3: "+label0Voting3.size());
     							return (E) item;
     						}
     					}
@@ -207,7 +209,7 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
     		}
     		JBSEResult item = this.list.get(0);
     		this.list.remove(0);
-    		System.out.println("RETURN -- FIFO");
+    		System.out.println("[ML MODEL] RETURN -- FIFO");
     		return (E) item;
 
     	}

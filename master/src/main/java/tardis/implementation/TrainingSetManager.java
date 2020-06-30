@@ -97,8 +97,8 @@ public class TrainingSetManager {
 			if (LogManager.generateLogFiles)
 				PrintToCSV(PathToString, generalArray, generalArraySliced, specificArray, specificArraySliced, clauseArray, bloomFilterStructure, "1");
 			
-			System.out.println("+++++[TrainingSetManager] For path condition: " + PathToString);
-		    System.out.println("+++++[TrainingSetManager] PCWriterCSVSuccess: +++++ Data add to Training Set and saved to csv +++++");
+			System.out.println("[ML MODEL] For path condition: " + PathToString);
+		    System.out.println("[ML MODEL] PCWriterCSVSuccess: Data add to Training Set and saved to csv");
 		}
 	}
   
@@ -192,8 +192,8 @@ public class TrainingSetManager {
 			if (LogManager.generateLogFiles)
 				PrintToCSV(PathToString, generalArray, generalArraySliced, specificArray, specificArraySliced, clauseArray, bloomFilterStructure, "0");
 			
-			System.out.println("+++++[TrainingSetManager] For path condition: " + PathToString);
-		    System.out.println("+++++[TrainingSetManager] PCWriterCSVFailure: +++++ Data add to Training Set and saved to csv +++++");
+			System.out.println("[ML MODEL] For path condition: " + PathToString);
+		    System.out.println("[ML MODEL] PCWriterCSVFailure: Data add to Training Set and saved to csv");
 		}
 	}
 	

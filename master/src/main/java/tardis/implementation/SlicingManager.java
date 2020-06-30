@@ -26,9 +26,16 @@ public class SlicingManager {
 		
 		Pattern pattern = Pattern.compile("\\{(.*?\\d)\\}");
 		Pattern patternVariable = Pattern.compile("\\(\\{ROOT\\}:(.*?)\\)");
+		Pattern patternVariableAlternative = Pattern.compile("\\(\\[(.*?)\\)");
 		
 		//creo originSet: insieme delle origin di ogni clausola
 		for (int j=0; j < PathToStringArray.length; j++) {
+			
+			//riportare a formato ({ROOT}:...) il formato ([...]:...)
+			Matcher matcherVariableAlternative = patternVariableAlternative.matcher(PathToStringArray[j]);
+			if (matcherVariableAlternative.find())
+				PathToStringArray[j] = PathToStringArray[j].replace("([", "({ROOT}:[");
+			
 			Matcher matcherVariable = patternVariable.matcher(PathToStringArray[j]);
 			Matcher matcher = pattern.matcher(clauseArray[j].toString());
 			if (matcherVariable.find()) {
