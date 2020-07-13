@@ -5,6 +5,7 @@ import java.util.BitSet;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import tardis.Main;
 
 public class Knn {
 
@@ -19,22 +20,24 @@ public class Knn {
 		int countDistance0Label1 = 0;
 		double total = 0;
 
-		for (StructureLaberPair structure : bloomFilterList) {
-			double both=0;
-			double atLeast=0;
-			for (int i = 0; i < 16 ; i++) {
-				for (int j = 0; j < 64; j++) {
-					if (structure.getBloomFilterStructure()[i].get(j) == true && query[i].get(j) == true)
-						both++;
-					else if (structure.getBloomFilterStructure()[i].get(j) == false && query[i].get(j) == true)
-						atLeast++;
-					else if (structure.getBloomFilterStructure()[i].get(j) == true && query[i].get(j) == false)
-						atLeast++;
+		synchronized(Main.trainingSet) {
+			for (StructureLaberPair structure : bloomFilterList) {
+				double both=0;
+				double atLeast=0;
+				for (int i = 0; i < 16 ; i++) {
+					for (int j = 0; j < 64; j++) {
+						if (structure.getBloomFilterStructure()[i].get(j) == true && query[i].get(j) == true)
+							both++;
+						else if (structure.getBloomFilterStructure()[i].get(j) == false && query[i].get(j) == true)
+							atLeast++;
+						else if (structure.getBloomFilterStructure()[i].get(j) == true && query[i].get(j) == false)
+							atLeast++;
+					}
 				}
+				double jaccardDistance = both/(both+atLeast);
+				resultList.add(new Result(jaccardDistance, structure.getLabel()));
+				//System.out.println("Jaccard distance: "+jaccardDistance);
 			}
-			double jaccardDistance = both/(both+atLeast);
-			resultList.add(new Result(jaccardDistance, structure.getLabel()));
-			//System.out.println("Jaccard distance: "+jaccardDistance);
 		}
 
 		Collections.sort(resultList, new DistanceComparator());

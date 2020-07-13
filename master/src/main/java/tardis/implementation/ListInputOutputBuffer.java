@@ -2,6 +2,7 @@ package tardis.implementation;
 
 import static tardis.implementation.Util.shorten;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -201,6 +202,7 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
     						if(this.list.get(j).getId() == item.getId()) {
     							this.list.remove(j);
     							System.out.println("[ML MODEL] RETURN -- POLL NUM "+(IDPOLL.get()-1)+". ID: "+item.incrementalId+" Label: "+item.getLabel()+" Voting: "+item.getVoting()+" Average: "+item.getAverage()+" |label1voting3: "+label1Voting3.size()+" |label1voting2: "+label1Voting2.size()+" |label0voting2: "+label0Voting2.size()+" |label0voting3: "+label0Voting3.size());
+    							//System.out.println("BloomFilter : "+Arrays.toString(TrainingSetManager.printBits(item.getbloomFilterStructure())));
     							return (E) item;
     						}
     					}
