@@ -337,7 +337,7 @@ public abstract class Performer<I,O> {
         //throttles
         if (this.items.size() == 0 && this.threadPool.getActiveCount() == this.threadPool.getCorePoolSize() && 
         		this.throttleFactor > 0 && this.threadPool.getTaskCount() >= 1 / this.throttleFactor) {
-            return;
+        	return;
         }
             
         //polls

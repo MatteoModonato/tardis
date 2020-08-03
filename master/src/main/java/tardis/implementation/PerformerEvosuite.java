@@ -97,9 +97,9 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
     private final Path tmpPath;
     private final Path tmpBinPath;
     private final Path tmpWrapPath;
+    private final Path tmpTestPath;
     private final Path evosuitePath;
     private final Path sushiLibPath;
-    private final Path outPath;
     private final long timeBudgetSeconds;
     private final boolean evosuiteNoDependency;
     private final boolean useMOSA;
@@ -107,7 +107,9 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
     private final String classpathCompilationTest;
     private final String classpathCompilationWrapper;
     private int testCount;
+    private volatile boolean stopForSeeding;
 
+    
     public PerformerEvosuite(Options o, InputBuffer<JBSEResult> in, OutputBuffer<EvosuiteResult> out) throws PerformerEvosuiteInitException {
         super(in, out, o.getNumOfThreads(), (o.getUseMOSA() ? o.getNumMOSATargets() : 1), o.getThrottleFactorEvosuite(), o.getTimeoutMOSATaskCreationDuration(), o.getTimeoutMOSATaskCreationUnit());
         try {
@@ -124,10 +126,10 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
         this.classesPathString = String.join(File.pathSeparator, stream(o.getClassesPath()).map(Object::toString).toArray(String[]::new)); 
         this.tmpPath = o.getTmpDirectoryPath();
         this.tmpWrapPath = o.getTmpWrappersDirectoryPath();
+        this.tmpTestPath = o.getTmpTestsDirectoryPath();
         this.tmpBinPath = o.getTmpBinDirectoryPath();
         this.evosuitePath = o.getEvosuitePath();
         this.sushiLibPath = o.getSushiLibPath();
-        this.outPath = o.getOutDirectory();
         this.timeBudgetSeconds = o.getEvosuiteTimeBudgetUnit().toSeconds(o.getEvosuiteTimeBudgetDuration());
         this.evosuiteNoDependency = o.getEvosuiteNoDependency();
         this.useMOSA = o.getUseMOSA();
@@ -135,18 +137,24 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
         this.classpathCompilationTest = this.tmpBinPath.toString() + File.pathSeparator + this.classesPathString + File.pathSeparator + this.sushiLibPath.toString() + File.pathSeparator + this.evosuitePath.toString();
         this.classpathCompilationWrapper = this.classesPathString + File.pathSeparator + this.sushiLibPath.toString();
         this.testCount = (o.getInitialTestCase() == null ? 0 : 1);
+        this.stopForSeeding = false;
     }
 
     @Override
     protected Runnable makeJob(List<JBSEResult> items) {
+        while (this.stopForSeeding) ; //ugly spinlocking
         final int testCountInitial = this.testCount;
-        this.testCount += items.size();
-        final Runnable job = (items.get(0).isSeed() ? 
+        final boolean isSeed = (items.size() == 1 && items.get(0).isSeed()); 
+        if (isSeed) {
+            this.stopForSeeding = true;
+        } else {
+            this.testCount += items.size();
+        }
+        final Runnable job = (isSeed ? 
                               () -> {
 								try {
 									generateTestsAndScheduleJBSESeed(testCountInitial, items.get(0));
 								} catch (IOException e) {
-									// TODO Auto-generated catch block
 									e.printStackTrace();
 								}
 							} :
@@ -166,78 +174,89 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
      * @throws IOException 
      */
     private void generateTestsAndScheduleJBSESeed(int testCountInitial, JBSEResult item) throws IOException {
-        final boolean isTargetAMethod = (item.getTargetClassName() == null);
-        
-        if (isTargetAMethod) {
-            //builds the EvoSuite wrapper
-            emitAndCompileEvoSuiteWrapperSeed(testCountInitial, item);
-            
-            //builds the EvoSuite command line
-            final List<String> evosuiteCommand = buildEvoSuiteCommand(testCountInitial, Collections.singletonList(item));
+        try {
+            final boolean isTargetAMethod = (item.getTargetClassName() == null);
 
-            //launches EvoSuite
-            final Path evosuiteLogFilePath = this.tmpPath.resolve("evosuite-log-" + testCountInitial + ".txt");
-            final Process processEvosuite;
-            try {
-                processEvosuite = launchProcess(evosuiteCommand, evosuiteLogFilePath);
-                System.out.println("[EVOSUITE] Launched EvoSuite seed process, command line: " + evosuiteCommand.stream().reduce("", (s1, s2) -> { return s1 + " " + s2; }));
-            } catch (IOException e) {
-                System.out.println("[EVOSUITE] Unexpected I/O error while running EvoSuite: " + e);
-                return; //TODO throw an exception?
+            if (isTargetAMethod) {
+                //builds the EvoSuite wrapper
+                emitAndCompileEvoSuiteWrapperSeed(testCountInitial, item);
+
+                //builds the EvoSuite command line
+                final List<String> evosuiteCommand = buildEvoSuiteCommand(testCountInitial, Collections.singletonList(item));
+
+                //launches EvoSuite
+                final Path evosuiteLogFilePath = this.tmpPath.resolve("evosuite-log-" + testCountInitial + ".txt");
+                final Process processEvosuite;
+                try {
+                    processEvosuite = launchProcess(evosuiteCommand, evosuiteLogFilePath);
+                    System.out.println("[EVOSUITE] Launched EvoSuite seed process, command line: " + evosuiteCommand.stream().reduce("", (s1, s2) -> { return s1 + " " + s2; }));
+                } catch (IOException e) {
+                    System.out.println("[EVOSUITE] Unexpected I/O error while running EvoSuite: " + e);
+                    return; //TODO throw an exception?
+                }
+
+                //waits for EvoSuite to end
+                try {
+                    processEvosuite.waitFor();
+                } catch (InterruptedException e) {
+                    //this performer was shut down: kills the EvoSuite job
+                    //and return
+                    processEvosuite.destroy();
+                    return;
+                }
+
+                //schedules JBSE
+                checkTestCompileAndScheduleJBSE(testCountInitial, item);
+
+                //updates the counter
+                this.testCount = testCountInitial + 1;
+            } else {
+                //builds the EvoSuite command line
+                final List<String> evosuiteCommand = buildEvoSuiteCommandSeed(item); 
+
+                //launches EvoSuite
+                final Path evosuiteLogFilePath = this.tmpPath.resolve("evosuite-log-seed.txt");
+                final Process processEvosuite;
+                try {
+                    processEvosuite = launchProcess(evosuiteCommand, evosuiteLogFilePath);
+                    System.out.println("[EVOSUITE] Launched EvoSuite seed process, command line: " + evosuiteCommand.stream().reduce("", (s1, s2) -> { return s1 + " " + s2; }));
+                } catch (IOException e) {
+                    System.out.println("[EVOSUITE] Unexpected I/O error while running EvoSuite seed: " + e);
+                    return; //TODO throw an exception?
+                }
+
+                //waits for EvoSuite to end
+                try {
+                    processEvosuite.waitFor();
+                } catch (InterruptedException e) {
+                    //this performer was shut down: kills the EvoSuite job
+                    //and return
+                    processEvosuite.destroy();
+                    return;
+                }
+
+                //splits output
+                final List<JBSEResult> splitItems;
+                try {
+                    splitItems = splitEvosuiteSeed(testCountInitial, item);
+                } catch (IOException e) {
+                    System.out.println("[EVOSUITE] Unexpected I/O error while splitting EvoSuite seed: " + e);
+                    return; //TODO throw an exception?
+                }
+
+                //schedules JBSE
+                int testCount = testCountInitial;
+                for (JBSEResult splitItem : splitItems) {
+                    checkTestCompileAndScheduleJBSE(testCount, splitItem);
+                    ++testCount;
+                }
+
+                //updates the counter
+                this.testCount = testCount;
             }
-
-            //waits for EvoSuite to end
-            try {
-                processEvosuite.waitFor();
-            } catch (InterruptedException e) {
-                //this performer was shut down: kills the EvoSuite job
-                //and return
-                processEvosuite.destroy();
-                return;
-            }
-
-            //schedules JBSE
-            checkTestCompileAndScheduleJBSE(testCountInitial, item);
-        } else {
-            //builds the EvoSuite command line
-            final List<String> evosuiteCommand = buildEvoSuiteCommandSeed(item); 
-
-            //launches EvoSuite
-            final Path evosuiteLogFilePath = this.tmpPath.resolve("evosuite-log-seed.txt");
-            final Process processEvosuite;
-            try {
-                processEvosuite = launchProcess(evosuiteCommand, evosuiteLogFilePath);
-                System.out.println("[EVOSUITE] Launched EvoSuite seed process, command line: " + evosuiteCommand.stream().reduce("", (s1, s2) -> { return s1 + " " + s2; }));
-            } catch (IOException e) {
-                System.out.println("[EVOSUITE] Unexpected I/O error while running EvoSuite seed: " + e);
-                return; //TODO throw an exception?
-            }
-
-            //waits for EvoSuite to end
-            try {
-                processEvosuite.waitFor();
-            } catch (InterruptedException e) {
-                //this performer was shut down: kills the EvoSuite job
-                //and return
-                processEvosuite.destroy();
-                return;
-            }
-
-            //splits output
-            final List<JBSEResult> splitItems;
-            try {
-                splitItems = splitEvosuiteSeed(testCountInitial, item);
-            } catch (IOException e) {
-                System.out.println("[EVOSUITE] Unexpected I/O error while splitting EvoSuite seed: " + e);
-                return; //TODO throw an exception?
-            }
-
-            //schedules JBSE
-            int testCount = testCountInitial;
-            for (JBSEResult splitItem : splitItems) {
-                checkTestCompileAndScheduleJBSE(testCount, splitItem);
-                ++testCount;
-            }
+        } finally {
+            //unlocks
+            this.stopForSeeding = false;
         }
     }
     
@@ -353,7 +372,9 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
             fmt.cleanup();
             return null; //TODO throw an exception
         }
-        final String initialCurrentClassPackageName = initialCurrentClassName.substring(0, initialCurrentClassName.lastIndexOf('/'));
+        
+        final int lastSlash = initialCurrentClassName.lastIndexOf('/');
+        final String initialCurrentClassPackageName = (lastSlash == -1 ? "" : initialCurrentClassName.substring(0, lastSlash));
         final Path wrapperDirectoryPath = this.tmpWrapPath.resolve(initialCurrentClassPackageName);
         try {
             Files.createDirectories(wrapperDirectoryPath);
@@ -467,7 +488,7 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
         retVal.add("-Dglobal_timeout=" + this.timeBudgetSeconds);
         retVal.add("-Dreport_dir=" + this.tmpPath.toString());
         retVal.add("-Dsearch_budget=" + this.timeBudgetSeconds);
-        retVal.add("-Dtest_dir=" + this.tmpPath.toString());
+        retVal.add("-Dtest_dir=" + this.tmpTestPath.toString());
         retVal.add("-Dvirtual_fs=false");
         retVal.add("-Dselection_function=ROULETTEWHEEL");
         retVal.add("-Dcriterion=BRANCH");                
@@ -526,7 +547,7 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
         retVal.add("-Dglobal_timeout=" + this.timeBudgetSeconds);
         retVal.add("-Dreport_dir=" + this.tmpPath.toString());
         retVal.add("-Dsearch_budget=" + this.timeBudgetSeconds);
-        retVal.add("-Dtest_dir=" + this.outPath.toString());
+        retVal.add("-Dtest_dir=" + this.tmpTestPath.toString());
         retVal.add("-Dvirtual_fs=false");
         retVal.add("-Dselection_function=ROULETTEWHEEL");
         retVal.add("-Dcriterion=PATHCONDITION");		
@@ -618,8 +639,7 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
      *        from {@code testCountInitial} henceforth.
      * @param item a {@link JBSEResult}. It must be
      *        {@code item.}{@link JBSEResult#isSeed() isSeed}{@code () == true && item.}{@link JBSEResult#hasTargetMethod() hasTargetMethod}{@code () == false}.
-     * @return an {@code int}, the final value of test count, i.e., {@code testCountInitial}
-     *         plus the total number of generated tests.
+     * @return a {@link List}{@code <}{@link JBSEResult}{@code >}.
      * @throws IOException if it fails to open the test class or scaffolding class
      *         produced by the seed process
      */
@@ -627,8 +647,8 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
         //parses the seed compilation unit
         final String testClassName = (item.getTargetClassName() + "_Seed_Test");
         final String scaffClassName = (this.evosuiteNoDependency ? null : testClassName + "_scaffolding");
-        final Path testFile = this.tmpPath.resolve(testClassName + ".java");
-        final Path scaffFile = (this.evosuiteNoDependency ? null : this.tmpPath.resolve(scaffClassName + ".java"));
+        final Path testFile = this.tmpTestPath.resolve(testClassName + ".java");
+        final Path scaffFile = (this.evosuiteNoDependency ? null : this.tmpTestPath.resolve(scaffClassName + ".java"));
         if (!testFile.toFile().exists() || (scaffFile != null && !scaffFile.toFile().exists())) {
             System.out.println("[EVOSUITE] Failed to split the seed test class " + testFile + ": the test class does not seem to exist");
             return null; //TODO throw some exception?
@@ -760,15 +780,16 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
                 cuTestClassNew.replace(testClassDeclarationOld, testClassDeclarationNew);
 
                 //writes the compilation units to files
-                final Path testFileNew = this.outPath.resolve(testClassNameNew + ".java");
+                final Path testFileNew = this.tmpTestPath.resolve(testClassNameNew + ".java");
                 Files.createDirectories(testFileNew.getParent());
                 try (final BufferedWriter w = Files.newBufferedWriter(testFileNew)) {
                     w.write(cuTestClassNew.toString());
                 }
+                final Path scaffFileNew;
                 if (this.evosuiteNoDependency) {
-                    //nothing else to write
+                    scaffFileNew = null; //nothing else to write
                 } else {
-                    final Path scaffFileNew = this.outPath.resolve(scaffClassNameNew + ".java");
+                    scaffFileNew = this.tmpTestPath.resolve(scaffClassNameNew + ".java");
                     try (final BufferedWriter w = Files.newBufferedWriter(scaffFileNew)) {
                         w.write(cuTestScaffNew.toString());
                     }
@@ -959,8 +980,8 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
         
         //checks if EvoSuite generated the files
         final String testCaseClassName = (item.hasTargetMethod() ? item.getTargetMethodClassName() : item.getTargetClassName()) + "_" + testCount + "_Test";
-        final Path testCaseScaff = (this.evosuiteNoDependency ? null : this.outPath.resolve(testCaseClassName + "_scaffolding.java"));
-        final Path testCase = this.outPath.resolve(testCaseClassName + ".java");
+        final Path testCaseScaff = (this.evosuiteNoDependency ? null : this.tmpTestPath.resolve(testCaseClassName + "_scaffolding.java"));
+        final Path testCase = this.tmpTestPath.resolve(testCaseClassName + ".java");
         if (!testCase.toFile().exists() || (testCaseScaff != null && !testCaseScaff.toFile().exists())) {
             System.out.println("[EVOSUITE] Failed to generate the test case " + testCaseClassName + " for path condition: " + pathCondition + ": the generated files do not seem to exist");
             return;
@@ -986,8 +1007,8 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
             final int depth = item.getDepth();
             System.out.println("[EVOSUITE] Generated test case " + testCaseClassName + ", depth: " + depth + ", path condition: " + pathCondition);
             TrainingSetManager.PCWriterCSVSuccess(pathConditionClauses, testCaseClassName);
-            final TestCase newTC = new TestCase(testCaseClassName, "()V", "test0", this.outPath);
-            this.getOutputBuffer().add(new EvosuiteResult(item.getTargetMethodClassName(), item.getTargetMethodDescriptor(), item.getTargetMethodName(), newTC, depth + 1)); //TODO what if the item has not a target method, as it happens with seeds???
+            final TestCase newTestCase = new TestCase(testCaseClassName, "()V", "test0", this.tmpTestPath, (testCaseScaff != null));
+            this.getOutputBuffer().add(new EvosuiteResult(item.getTargetMethodClassName(), item.getTargetMethodDescriptor(), item.getTargetMethodName(), newTestCase, depth + 1));
         } catch (NoSuchMethodException e) { 
             //EvoSuite failed to generate the test case, thus we just ignore it 
             System.out.println("[EVOSUITE] Failed to generate the test case " + testCaseClassName + " for path condition: " + pathCondition + ": the generated file does not contain a test method");
