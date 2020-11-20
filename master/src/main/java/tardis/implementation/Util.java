@@ -1,6 +1,7 @@
 package tardis.implementation;
 
 import java.io.File;
+import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
@@ -171,7 +172,7 @@ public final class Util {
     }	
 
     /**
-     * Returns the target methods.
+     * Returns the target methods (and constructors).
      * 
      * @param o an {@link Options} object.
      * @return a {@link List}{@code <}{@link List}{@code <}{@link String}{@code >>}, where each 
@@ -189,74 +190,95 @@ public final class Util {
      * @throws SecurityException if a security violation arises.
      * @throws MalformedURLException if some path in {@code o.}{@link Options#getClassesPath() getClassesPath()} does not exist.
      */
-    static List<List<String>> getTargetMethods(Options o) 
+    static List<List<String>> getTargets(Options o) 
     throws ClassNotFoundException, MalformedURLException, SecurityException {
         final String className = o.getTargetClass();
-        final List<List<String>> methods = new ArrayList<>();
+        final List<List<String>> retVal = new ArrayList<>();
         if (className == null) {
-            methods.add(o.getTargetMethod());
+            retVal.add(o.getTargetMethod());
         } else {
             final boolean onlyPublic = (o.getVisibility() == Visibility.PUBLIC);
             final ClassLoader ic = getInternalClassloader(o.getClassesPath());
             final Class<?> clazz = ic.loadClass(className.replace('/', '.'));
-            for (Method m : clazz.getDeclaredMethods()) {
-                if (!EXCLUDED.contains(m.getName()) &&
-                    ((onlyPublic && (m.getModifiers() & Modifier.PUBLIC) != 0) || (m.getModifiers() & Modifier.PRIVATE) == 0) &&
-                    !m.isSynthetic()) {
-                    final List<String> methodSignature = new ArrayList<>(3);
-                    methodSignature.add(className);
-                    methodSignature.add("(" + Arrays.stream(m.getParameterTypes())
+            final List<Executable> targets = Stream.concat(Arrays.stream(clazz.getDeclaredMethods()), Arrays.stream(clazz.getDeclaredConstructors())).collect(Collectors.toList());
+            for (Executable t : targets) {
+                if (!EXCLUDED.contains(t.getName()) &&
+                    ((onlyPublic && (t.getModifiers() & Modifier.PUBLIC) != 0) || (t.getModifiers() & Modifier.PRIVATE) == 0) &&
+                    !t.isSynthetic()) {
+                    final List<String> targetSignature = new ArrayList<>(3);
+                    targetSignature.add(className);
+                    targetSignature.add("(" + Arrays.stream(t.getParameterTypes())
                                                     .map(c -> c.getName())
                                                     .map(s -> s.replace('.', '/'))
                                                     .map(Util::convertPrimitiveTypes)
                                                     .map(Util::addReferenceMark)
                                                     .collect(Collectors.joining()) +
-                                        ")" + addReferenceMark(convertPrimitiveTypes(m.getReturnType().getName().replace('.', '/'))));
-                    methodSignature.add(m.getName());
-                    methods.add(methodSignature);
+                                        ")" + ((t instanceof Method) ? addReferenceMark(convertPrimitiveTypes(((Method) t).getReturnType().getName().replace('.', '/'))) : "V"));
+                    targetSignature.add((t instanceof Method) ? t.getName() : "<init>");
+                    retVal.add(targetSignature);
                 }
             }
         }
-        return methods;
+        return retVal;
     }
-
+    
     /**
-     * Returns a classloader to load the classes on a classpath.
+     * Returns a classloader to load the classes on a classpath, 
+     * creating it if it does not exist.
      * 
      * @param classpath A {@link List}{@code <}{@link Path}{@code >}.
      * @return a {@link ClassLoader} that is able to load the classes
-     *         found in {@code classpath}.
+     *         found in {@code classpath}. If the method is invoked 
+     *         twice, the second time the classloader is not recreated, 
+     *         the {@code classpath} parameter is ignored, and the
+     *         classoader created at the first invocation is returned 
      * @throws MalformedURLException if some path in {@code classpath} 
      *         is malformed.
      * @throws SecurityException if a security violation arises.
      */
+    static ClassLoader internalClassLoader = null; //lazily initialized
     private static ClassLoader getInternalClassloader(List<Path> classpath) throws MalformedURLException, SecurityException {
-        final ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
-        final ClassLoader classLoader;
-        if (classpath == null || classpath.size() == 0) {
-            classLoader = systemClassLoader;
-        } else {
-            final List<File> paths = new ArrayList<File>();
-            for (Path path : classpath) {
-                final File newPath = path.toFile();
-                if (!newPath.exists()) {
-                    throw new MalformedURLException("The new path " + newPath + " does not exist");
-                } else {
-                    paths.add(newPath);
+        if (internalClassLoader == null) {
+            final ClassLoader systemClassLoader = ClassLoader.getSystemClassLoader();
+            if (classpath == null || classpath.size() == 0) {
+                internalClassLoader = systemClassLoader;
+            } else {
+                final List<File> paths = new ArrayList<File>();
+                for (Path path : classpath) {
+                    final File newPath = path.toFile();
+                    if (!newPath.exists()) {
+                        throw new MalformedURLException("The new path " + newPath + " does not exist");
+                    } else {
+                        paths.add(newPath);
+                    }
                 }
+    
+                final List<URL> urls = new ArrayList<URL>();
+                if (systemClassLoader instanceof URLClassLoader) {
+                    urls.addAll(Arrays.asList(((URLClassLoader) systemClassLoader).getURLs()));
+                }
+    
+                for (File newPath : paths) {
+                    urls.add(newPath.toURI().toURL());
+                }
+                internalClassLoader = new URLClassLoader(urls.toArray(new URL[0]), Util.class.getClassLoader());
             }
-
-            final List<URL> urls = new ArrayList<URL>();
-            if (systemClassLoader instanceof URLClassLoader) {
-                urls.addAll(Arrays.asList(((URLClassLoader) systemClassLoader).getURLs()));
-            }
-
-            for (File newPath : paths) {
-                urls.add(newPath.toURI().toURL());
-            }
-            classLoader = new URLClassLoader(urls.toArray(new URL[0]), Util.class.getClassLoader());
         }
-        return classLoader;
+        return internalClassLoader;
+    }
+    
+    /**
+     * Returns a classloader to load the classes on a classpath.
+     * 
+     * @return a {@link ClassLoader} that is able to load the classes
+     *         found in the classpath given by the first previous call to
+     *         {@link #getTargets(Options)}. If the method is invoked 
+     *         before {@link #getTargets(Options)} is invoked, it returns
+     *         {@code null}. 
+     * @throws SecurityException if a security violation arises.
+     */
+    static ClassLoader getInternalClassloader() {
+        return internalClassLoader;
     }
 
     /**

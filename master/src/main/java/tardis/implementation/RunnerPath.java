@@ -1,10 +1,8 @@
 package tardis.implementation;
 
 import static jbse.algo.Util.valueString;
-import static jbse.bc.Opcodes.OP_INVOKEINTERFACE;
+import static jbse.apps.run.DecisionProcedureGuidanceJDI.countNonRecursiveHits;
 import static jbse.bc.Signatures.JAVA_STRING;
-import static jbse.common.Util.byteCat;
-import static tardis.implementation.Util.bytecodeInvoke;
 import static tardis.implementation.Util.bytecodeJump;
 import static tardis.implementation.Util.bytecodeLoadConstant;
 
@@ -22,7 +20,6 @@ import jbse.apps.run.DecisionProcedureGuidanceJDI;
 import jbse.apps.run.GuidanceException;
 import jbse.bc.Signature;
 import jbse.bc.exc.InvalidClassFileFactoryClassException;
-import jbse.bc.exc.InvalidIndexException;
 import jbse.common.exc.ClasspathException;
 import jbse.common.exc.InvalidInputException;
 import jbse.dec.DecisionProcedureAlgorithms;
@@ -49,7 +46,6 @@ import jbse.mem.State.Phase;
 import jbse.mem.exc.ContradictionException;
 import jbse.mem.exc.FrozenStateException;
 import jbse.mem.exc.InvalidNumberOfOperandsException;
-import jbse.mem.exc.InvalidProgramCounterException;
 import jbse.mem.exc.ThreadStackEmptyException;
 import jbse.rewr.CalculatorRewriting;
 import jbse.rewr.RewriterOperationOnSimplex;
@@ -191,12 +187,18 @@ final class RunnerPath implements AutoCloseable {
             final State currentState = getEngine().getCurrentState();
             if (currentState.phase() != Phase.PRE_INITIAL) {
                 try {
+                    final int currentProgramCounter = currentState.getCurrentProgramCounter();
                     final byte currentInstruction = currentState.getInstruction();
+                    
+                    //if at entry of a method, add the entry point to coverage 
+                    if (currentProgramCounter == 0) {
+                        this.coverage.add(currentState.getCurrentMethodSignature().toString() + ":0:0");
+                    }
 
                     //if at a jump bytecode, saves the start program counter
                     this.atJump = bytecodeJump(currentInstruction);
                     if (this.atJump) {
-                        this.jumpPC = currentState.getCurrentProgramCounter();
+                        this.jumpPC = currentProgramCounter;
                     }
 
                     //if at a load constant bytecode, saves the stack size
@@ -586,83 +588,13 @@ final class RunnerPath implements AutoCloseable {
         }
     }
 
-    private static class ActionsCounter extends Actions {
-        private final String methodClassName, methodDescriptor, methodName;
-        private int methodCallCounter = 0;
-        private boolean atInvocation = false;
-        private int preStackSize = 0;
-
-
-        public ActionsCounter(String methodClassName, String methodDescriptor, String methodName) {
-            this.methodClassName = methodClassName;
-            this.methodDescriptor = methodDescriptor;
-            this.methodName = methodName;
-        }
-
-        @Override
-        public boolean atStepPre() {
-            try {
-                final State currentState = getEngine().getCurrentState();
-                if (currentState.phase() == Phase.POST_INITIAL && bytecodeInvoke(currentState.getInstruction())) {
-                    final int UW = byteCat(currentState.getInstruction(1), currentState.getInstruction(2));
-                    final Signature sig;
-                    if (currentState.getInstruction() == OP_INVOKEINTERFACE) {
-                        sig = currentState.getCurrentClass().getInterfaceMethodSignature(UW);
-                    } else { //TODO invokedynamic and invokehandle
-                        sig = currentState.getCurrentClass().getMethodSignature(UW);
-                    }
-                    this.atInvocation = (this.methodDescriptor.equals(sig.getDescriptor()) && this.methodName.equals(sig.getName())); //we do not check sig.getClassName() because it is the pre-resolution classname 
-                    this.preStackSize = currentState.getStackSize();
-                    //Note that being at at invocation bytecode does not mean that the method
-                    //will be invoked at the next step: E.g., a class could be initialized
-                    //before the execution of the bytecode. In such case, the execution of the
-                    //invoke bytecode is abandoned, the <clinit> frame is pushed on the stack, 
-                    //and after returning from the <clinit> execution JBSE will execute again
-                    //the invoke bytecode. For this reason here we just register that we are 
-                    //at an invocation bytecode, and in the atStepPost we check whether we 
-                    //actually are in the invoked method frame.
-                } else {
-                    this.atInvocation = false;
-                }
-            } catch (FrozenStateException | InvalidIndexException | ThreadStackEmptyException | InvalidProgramCounterException e) {
-                //this should never happen
-                throw new AssertionError(e);
-            }
-            return super.atStepPre();
-        }
-
-        @Override
-        public boolean atStepPost() {
-            try {
-                if (this.atInvocation) {
-                    final State currentState = getEngine().getCurrentState();
-                    final Signature sig = currentState.getCurrentMethodSignature();
-                    if (this.methodClassName.equals(sig.getClassName()) && this.methodDescriptor.equals(sig.getDescriptor()) && 
-                    this.methodName.equals(sig.getName()) && currentState.getStackSize() == this.preStackSize + 1) {
-                        ++this.methodCallCounter;
-                    }
-                }
-            } catch (ThreadStackEmptyException e) {
-                //this should never happen
-                throw new AssertionError(e);
-            }
-            return super.atStepPost();
-        }    
-    }
-
-    //TODO do not count recursive invocations
     private int countNumberOfInvocations(String methodClassName, String methodDescriptor, String methodName)
     throws CannotBuildEngineException, DecisionException, InitializationException, InvalidClassFileFactoryClassException, 
     NonexistingObservedVariablesException, ClasspathException, ContradictionException, CannotBacktrackException, 
     CannotManageStateException, ThreadStackEmptyException, EngineStuckException, FailureException {
         final RunnerParameters pConcrete = this.commonParamsGuiding.clone();
-        completeParametersConcrete(pConcrete);
-        final ActionsCounter actions = new ActionsCounter(methodClassName, methodDescriptor, methodName);
-        pConcrete.setActions(actions);
-        final RunnerBuilder rb = new RunnerBuilder();
-        final Runner r = rb.build(pConcrete);
-        r.run();
-        return actions.methodCallCounter;
+        completeParametersConcrete(pConcrete);        
+        return countNonRecursiveHits(pConcrete, new Signature(methodClassName, methodDescriptor, methodName));
     }
 
     /**
