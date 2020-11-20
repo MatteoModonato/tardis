@@ -3,14 +3,16 @@ package tardis.implementation;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
-import com.opencsv.CSVWriter;
 import jbse.mem.Clause;
 
 import static tardis.implementation.Util.shorten;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
+
 import tardis.Main;
 
 /**
@@ -48,18 +50,22 @@ public class TrainingSetManager {
 	    if (!directory.exists()){
 	        directory.mkdir();
 	    }
-		
-		String[] record;
-		CSVWriter writer = new CSVWriter(new FileWriter(LogManager.PATH+"trainingSet.csv", true),
-				';', 
-				CSVWriter.NO_QUOTE_CHARACTER,
-				CSVWriter.DEFAULT_ESCAPE_CHARACTER,
-				CSVWriter.DEFAULT_LINE_END);
-		record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(generalArraySliced), Arrays.toString(specificArray), Arrays.toString(specificArraySliced), Arrays.toString(clauseArray), Arrays.toString(printBits(bloomFilterStructure)), label};
-		//record = new String[] {PathToString.replace(";", ""), Arrays.toString(generalArray).replace(";", ""), Arrays.toString(clauseArray).replace(";", ""), Arrays.toString(printBits(bloomFilterStructure)), "1"};
-		//record = new String[] {PathToString, Arrays.toString(generalArray), Arrays.toString(clauseArray), Arrays.toString(clauseArraySliced), Arrays.toString(printBits(bloomFilterStructure)).replace("[", "").replace("]", "").replace(",", ";"), "1"};
-		writer.writeNext(record);
-		writer.close();
+			
+		File csv = new File(LogManager.PATH+"trainingSet.csv");
+		try(FileWriter fw = new FileWriter(csv, true);
+				BufferedWriter bw = new BufferedWriter(fw);
+				PrintWriter out = new PrintWriter(bw)) {
+			if (csv.length()==0) { 
+				out.println("Original path condition;General path condition;General path condition sliced;Specific path condition;Specific path condition sliced;ClauseArray;BloomFilterStructure;Label");
+				out.println(PathToString+";"+Arrays.toString(generalArray)+";"+Arrays.toString(generalArraySliced)+";"+Arrays.toString(specificArray)+";"+Arrays.toString(specificArraySliced)+";"+Arrays.toString(clauseArray)+";"+Arrays.toString(printBits(bloomFilterStructure))+";"+label);
+			}
+			else {
+				out.println(PathToString+";"+Arrays.toString(generalArray)+";"+Arrays.toString(generalArraySliced)+";"+Arrays.toString(specificArray)+";"+Arrays.toString(specificArraySliced)+";"+Arrays.toString(clauseArray)+";"+Arrays.toString(printBits(bloomFilterStructure))+";"+label);
+			}
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	
