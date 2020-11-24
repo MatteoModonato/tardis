@@ -19,13 +19,13 @@ public class ExtractByCumulative {
 			listCumulative.add(i, labelVoting.get(i).getAverage());
 		}
 		
-		//eseguo la cumulativa
+		//calculate cumulative
 		for (int i = 1; i<labelVoting.size(); i++) {
 			double cumulative = listCumulative.get(i)+listCumulative.get(i-1);
 			listCumulative.set(i, cumulative);
 		}
 		
-		//converto gli intervalli da double ad int
+		//convert ranges from double to int
 		ArrayList<Integer> listCumulativeInt = new ArrayList<Integer>();
 		for(Double d : listCumulative){
 			d = d*100;
@@ -33,10 +33,10 @@ public class ExtractByCumulative {
 		}
 		listCumulativeInt.add(0, 0);
 		
-		//genero un numero randomico compreso tra 0 e il massimo in listCumulativeInt
+		//generate a random number between 0 and the maximum of listCumulativeInt
 		Random rand = new Random();
 		int upperbound=listCumulativeInt.get(listCumulativeInt.size()-1)-1;
-		//gestisco caso in cui getAverage() è sempre uguale a 0
+		//handle case where getAverage() is always equal to 0
 		if (upperbound<1) 
 			return labelVoting.get(0);
 		

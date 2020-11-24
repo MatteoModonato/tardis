@@ -36,7 +36,6 @@ public class Knn {
 				}
 				double jaccardDistance = both/(both+atLeast);
 				resultList.add(new Result(jaccardDistance, structure.getLabel()));
-				//System.out.println("Jaccard distance: "+jaccardDistance);
 			}
 		}
 
@@ -68,8 +67,8 @@ public class Knn {
 		
 		double average = total / nearestKPointsDistance.length;
 		
-		//Gestisco anche i casi in cui una o più distanze è zero: non
-		//esiste ancora nel training set evidenza per quella query.
+		//Handle cases where one or more distances are zero: 
+		//there are no valid items in the training set for that query yet
 		if (countDistance0==3 || countDistance0==2) {
 			Object[] output = new Object[]{0, 3, 0.0};
 			return output;

@@ -60,7 +60,6 @@ public final class Main {
     }
     
     public static List<StructureLaberPair> trainingSet = Collections.synchronizedList(new ArrayList<StructureLaberPair>());
-    //public static List<StructureLaberPair> trainingSet = new ArrayList<StructureLaberPair>();
 	public static int trainingSetLen = 0;
 
     /**

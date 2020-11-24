@@ -17,33 +17,25 @@ public class ConvertPCToBloomFilter {
 	public static int N_ROWS = 16;
 	public static int N_COLUMNS = 64;
 	
-	public static BitSet[] PCToBloomFilter(Collection<Clause> PC, String className) throws IOException {
+	public static BitSet[] PCToBloomFilter(Collection<Clause> PC) throws IOException {
 		if(PC!=null) {
-			//className= manyInfeasiblePC/ManyInfeasiblePC
-			//String nameClass = className.replaceAll("/.*", "");
-			//nameClass=manyInfeasiblePC
 
 			Object[] clauseArray = shorten(PC).toArray();
-
 			String PathToString = Util.stringifyPathCondition(shorten(PC));
 
-			//divido le varie clausole delle patyh condition in un array
+			//split pc clauses into array
 			String[] generalArray = PathToString.split(" && ");
 			String[] specificArray = PathToString.split(" && ");
-
+			//generate general clauses
 			for (int i=0; i < generalArray.length; i++){
-				//System.out.println("Prima della generalizzazione: "+generalArray[i]);
 				generalArray[i]=generalArray[i].replaceAll("[0-9]", "");
-				//System.out.println("Dopo la generalizzazione: "+generalArray[i]);
 			}
 
-			//chiamata al metodo Slicing
+			//Slicing call
 			Object[] outputSliced = SlicingManager.Slicing(specificArray, clauseArray, generalArray);
 			String[] specificArraySliced = (String[]) outputSliced[0];
 			String[] generalArraySliced = (String[]) outputSliced[1];
 
-
-			//BitSet[] bloomFilterStructure = bloomFilter(clauseArraySliced, generalArraySliced);
 			BitSet[] bloomFilterStructure = bloomFilter(specificArraySliced, generalArraySliced);
 
 			return bloomFilterStructure;
@@ -54,7 +46,7 @@ public class ConvertPCToBloomFilter {
 		}
 	}
 	
-	
+	//generate the bloomFilter structure using the concrete and abstract path conditions
 	public static BitSet[] bloomFilter(String[] specificArray, String[] generalArray) {
 
 		//creo array di bitSet bloom filter e array con dentro numeri primi per generare varie funzioni di hash

@@ -1060,10 +1060,9 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
             int testCount = this.testCountInitial;
             for (JBSEResult item : this.items) {
             	final List<Clause> pathConditionClauses = (item.getFinalState() == null ? null : item.getFinalState().getPathCondition());
-            	final String testCaseClassName = (item.hasTargetMethod() ? item.getTargetMethodClassName() : item.getTargetClassName()) + "_" + testCount + "_Test";
                 if (!generated.contains(testCount)) {
                     System.out.println("[EVOSUITE] Failed to generate a test case for path condition: " + stringifyPathCondition(shorten(item.getFinalState().getPathCondition())) + ", log file: " + this.evosuiteLogFilePath.toString() + ", wrapper: EvoSuiteWrapper_" + testCount);
-                    TrainingSetManager.PCWriterCSVFailure(pathConditionClauses, testCaseClassName);
+                    TrainingSetManager.PCEvosuiteSuccessFailure(pathConditionClauses, false);
                 }
                 ++testCount;
             }
@@ -1131,7 +1130,7 @@ public final class PerformerEvosuite extends Performer<JBSEResult, EvosuiteResul
             checkTestExists(testCaseClassName);
             final int depth = item.getDepth();
             System.out.println("[EVOSUITE] Generated test case " + testCaseClassName + ", depth: " + depth + ", path condition: " + pathCondition);
-            TrainingSetManager.PCWriterCSVSuccess(pathConditionClauses, testCaseClassName);
+            TrainingSetManager.PCEvosuiteSuccessFailure(pathConditionClauses, true);
             final TestCase newTestCase = new TestCase(testCaseClassName, "()V", "test0", this.tmpTestPath, (testCaseScaff != null));
             this.getOutputBuffer().add(new EvosuiteResult(item.getTargetMethodClassName(), item.getTargetMethodDescriptor(), item.getTargetMethodName(), newTestCase, depth + 1));
         } catch (NoSuchMethodException e) { 

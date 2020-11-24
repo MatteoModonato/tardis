@@ -18,8 +18,12 @@ import tardis.Main;
  */
 
 public class LogManager {
+	
+	public final static boolean generateLogFiles = false;
+	public final static boolean generateCSV = true;
+	
+	
 	public final static String dirName = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss").format(new Date());
-	public final static boolean generateLogFiles = true;
 	public final static String PATH = "logsFolder_"+dirName+"/";
 
 	public static void logManager(ArrayList<String> buffer, long id) {

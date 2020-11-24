@@ -2,7 +2,6 @@ package tardis.implementation;
 
 import static tardis.implementation.Util.shorten;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -36,15 +35,9 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
     		int threshold = 5;
     		int minTrainsetLen = 2;
     		boolean flag = false;
-    		
-    		System.out.println("---------------------------------");
-    		System.out.println("Length this.list: "+ this.list.size());
-    		System.out.println("Length TrainingSet: "+ Main.trainingSet.size());
-    		System.out.println("Length TrainingSet Threshold: "+ Main.trainingSetLen);
-    		System.out.println("---------------------------------");
 
-    		//Se non ho almeno tre elementi nel training set e due nella lista allora non posso 
-    		//fare knn quindi utilizzo FIFO restituendo il primo elemento della lista.
+    		//If I don't have at least three items in the training set and two in the list, it makes 
+    		//no sense to use KNN then I use FIFO to return the first element of the list.
     		if (Main.trainingSet.size()>minTrainsetLen && this.list.size()>1) {
     			ArrayList<JBSEResult> label1Voting3 = new ArrayList<JBSEResult>();
     			ArrayList<JBSEResult> label1Voting2 = new ArrayList<JBSEResult>();
@@ -54,11 +47,10 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
     			ArrayList<String> bufferLog = new ArrayList<String>();
 
     			for (int i=0; i<this.list.size(); i++) {
-    				//Se il trainingSet non è aumentato di n elementi allora classifico solo 
-    				//gli elementi dentro la lista che hanno la label uguale a 2 cioè significa 
-    				//che non sono ancora mai stati classificati con KNN.
+    				//If the trainingSet has not increased by n elements then I classify only the elements 
+    				//inside the list which have the label equal to 2 that means they have never been 
+    				//classified with KNN yet.
     				if(Main.trainingSet.size()<Main.trainingSetLen+threshold) {
-    					//System.out.println("SONO NELL'IF CHE CALCOLA SOLO QUELLI ANCORA NON CALCOLATI");
     					if(this.list.get(i).getLabel() == 2) {
     						Object[] result = Knn.knn(Main.trainingSet, this.list.get(i).getbloomFilterStructure());
     						int label = (int) result[0];
@@ -94,14 +86,11 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
     					}
 
     				}
-    				//Se il trainingSet è aumentato di n elementi allora classifico tutti 
-    				//gli elementi dentro la lista indipendentemente dal fatto che siano già
-    				//stati classificati una volta con il KNN. (Riclassifico tutto poichè il 
-    				//trainingSet è cresciuto di un valore significativo).
+    				//If the trainingSet is increased by n elements then I classify all the elements within the list 
+    				//regardless of whether they have already been classified once with the KNN. (I reclassify 
+    				//everything as the trainingSet has grown by a significant value).
     				else {
     					flag = true;
-    					//System.out.println("SONO NELL'ELSE CHE RICALCOLA TUTTO");
-    					//System.out.println("Valore della flag nell'else: "+flag);
     					Object[] result = Knn.knn(Main.trainingSet, this.list.get(i).getbloomFilterStructure());
     					int label = (int) result[0];
     					int voting = (int) result[1];
@@ -141,7 +130,6 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
 
     			if (flag == true) {
     				Main.trainingSetLen = Main.trainingSet.size();
-    				//System.out.println("SONO NELL'IF DELLA FLAG");
     			}
 
     			ArrayList<ArrayList<JBSEResult>> setOfPolls = new ArrayList<ArrayList<JBSEResult>>();
@@ -150,8 +138,8 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
     			setOfPolls.add(label0Voting2);
     			setOfPolls.add(label0Voting3);
 
-    			//Genero numero randomico tra 0 e 100 per scegliere da quale insieme estarre il JBSEResult
-    			//Probalilità e ordine di successione degli insiemi:
+    			//Generate random number between 0 and 100 to choose which set to extract the JBSEResult from
+    			//Probability and sequence order of sets:
     			//50% --> label1Voting3
     			//30% --> label1Voting2
     			//15% --> label0Voting2
@@ -181,11 +169,10 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
     				index=3;
     			}
 
-    			//Parto dall'insieme scelto tramite intRandom;
-    			//se l'insieme scelto è vuoto passo all'insieme immediatamente successivo
+    			//Start from the set chosen through intRandom
+    			//If the chosen set is empty I go to the immediately following set
     			for (int i = index; i<setOfPolls.size(); i++) {
-    				if(!setOfPolls.get(i).isEmpty()) {
-    					//JBSEResult item = setOfPolls.get(i).get(0);		
+    				if(!setOfPolls.get(i).isEmpty()) {	
     					JBSEResult item = ExtractByCumulative.extractByCumulative(setOfPolls.get(i));
     					
     					if (LogManager.generateLogFiles) {
@@ -196,13 +183,11 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
     	    				System.out.println("[ML MODEL] Write Log to file: log"+(IDPOLL.get()-1)+".txt");
     	    			}
 
-    					//Scorro this.list per identificare in base all'id il JBSEResult che ritorno 
-    					//ed eliminarlo dalla lista
+    					//Iterate over this.list to identify by id the JBSEResult returned and delete it from the list
     					for (int j=0; j<this.list.size(); j++) {
     						if(this.list.get(j).getId() == item.getId()) {
     							this.list.remove(j);
-    							System.out.println("[ML MODEL] RETURN -- POLL NUM "+(IDPOLL.get()-1)+". ID: "+item.incrementalId+" Label: "+item.getLabel()+" Voting: "+item.getVoting()+" Average: "+item.getAverage()+" |label1voting3: "+label1Voting3.size()+" |label1voting2: "+label1Voting2.size()+" |label0voting2: "+label0Voting2.size()+" |label0voting3: "+label0Voting3.size());
-    							//System.out.println("BloomFilter : "+Arrays.toString(TrainingSetManager.printBits(item.getbloomFilterStructure())));
+    							System.out.println("[ML MODEL] RETURN -- POLL ID: "+item.incrementalId+" Label: "+item.getLabel()+" Voting: "+item.getVoting()+" Average: "+item.getAverage()+" |label1voting3: "+label1Voting3.size()+" |label1voting2: "+label1Voting2.size()+" |label0voting2: "+label0Voting2.size()+" |label0voting3: "+label0Voting3.size() + " ||| Length this.list: "+ this.list.size() + " Length TrainingSet: "+ Main.trainingSet.size() + " Length TrainingSet Threshold: "+ Main.trainingSetLen);
     							return (E) item;
     						}
     					}
@@ -211,11 +196,11 @@ public final class ListInputOutputBuffer<E> implements InputBuffer<E>, OutputBuf
     		}
     		JBSEResult item = this.list.get(0);
     		this.list.remove(0);
-    		System.out.println("[ML MODEL] RETURN -- FIFO");
+    		System.out.println("[ML MODEL] RETURN -- FIFO ||| Length this.list: "+ this.list.size() + " Length TrainingSet: "+ Main.trainingSet.size() + " Length TrainingSet Threshold: "+ Main.trainingSetLen);
     		return (E) item;
 
     	}
-    	//se la lista è vuota allora ritorna null (meccanismo per sostituire il timeout)
+    	//If the list is empty then it returns null (timeout replacement)
     	E item = null;
     	return item;
     }
